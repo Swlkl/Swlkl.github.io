@@ -159,6 +159,10 @@
     z-index: 2000;
   }
 
+  .mobile-search-bar {
+  visibility: visible;
+  }
+
   .mobile-search-bar .search-container {
     display: block !important;
     width: 95%;
