@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKINET - MonNetflix & Music</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- BARRE DU HAUT -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo"><a href="#">SKINET</a></div>
+      
+      <nav class="navbar" id="navbar">
+        <button class="nav-item active" id="btnAccueil">Accueil</button>
+        <button class="nav-item" id="btnFilms">Films</button>
+        <button class="nav-item" id="btnVideos">Vidéos YouTube</button>
+        <button class="nav-item" id="btnMusiques">Musiques</button>
+        <button class="nav-item" id="btnNotes">Bloc-notes</button>
+        <button class="nav-item" id="btnMaListe">Ma liste</button>
+        <button class="btn-add-content" id="btnOuvrirAjout">+ Ajouter</button>
+      </nav>
+    </div>
+
+    <div class="topbar-right">
+      <div class="search-container">
+        <input type="text" id="searchBar" placeholder="Rechercher..." autocomplete="off">
+      </div>
+
+      <button class="icon-btn" title="Recherche">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M21.71 20.29l-5.01-5.01C17.54 13.92 18 12.02 18 10c0-4.41-3.59-8-8-8S2 5.59 2 10s3.59 8 8 8c2.02 0 3.92-.46 5.28-1.3l5.01 5.01c.39.39 1.02.39 1.41 0 .38-.39.38-1.03-.01-1.42zM4 10c0-3.31 2.69-6 6-6s6 2.69 6 6-2.69 6-6 6-6-2.69-6-6z"/>
+        </svg>
+      </button>
+
+      <div class="notification-container">
+        <button class="icon-btn" id="notificationBtn" title="Notifications">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+          </svg>
+        </button>
+        <span class="notification-badge" id="notificationBadge">0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENU PRINCIPAL CENTRAL -->
+  <main class="main-content">
+    <!-- BANNIÈRE HERO EN VEDETTE -->
+    <section class="hero-banner" id="heroBanner">
+      <div class="hero-poster-container">
+        <img src="" id="heroPoster" alt="Affiche" class="hero-poster-img">
+        <video id="heroVideo" class="hero-poster-img" style="display: none; object-fit: cover;" muted playsinline></video>
+      </div>
+      <div class="hero-overlay">
+        <div class="hero-top-right">
+          <span id="heroCategoryBadge" class="hero-category-badge">JEUX VIDÉO</span>
+        </div>
+
+        <div class="hero-details">
+          <h1 id="heroTitle" class="hero-title">Titre du contenu</h1>
+          <div class="hero-meta" id="heroMeta"></div>
+          <p id="heroDescription" class="hero-description">Description du contenu...</p>
+          <div class="hero-actions">
+            <button class="btn-hero-play" id="heroPlayBtn">▶ Lecture</button>
+            <button class="btn-hero-info" id="heroInfoBtn">Plus d'infos</button>
+          </div>
+        </div>
+
+        <div class="hero-carousel-dots" id="heroDotsContainer"></div>
+      </div>
+    </section>
+
+    <!-- CATALOGUE & CATÉGORIES -->
+    <h1 id="pageTitle" class="page-title" style="display: none;">Accueil</h1>
+    <div id="catalog"></div>
+  </main>
+
+  <!-- PANNEAU DROIT : EN COURS DE LECTURE -->
+  <aside class="right-panel" id="rightMusicPanel" style="display: none;">
+    <div class="right-panel-header">
+      <span>En cours de lecture</span>
+    </div>
+    
+    <div class="right-panel-cover-wrapper">
+      <img src="" id="rightPanelCover" alt="Pochette" class="right-panel-cover">
+    </div>
+
+    <div class="right-panel-infos">
+      <h2 id="rightPanelTitle">Aucune musique</h2>
+      <p id="rightPanelArtist">Sélectionnez un titre</p>
+    </div>
+
+    <div class="artist-card">
+      <h3>À propos de l'artiste</h3>
+      <div class="artist-card-header">
+        <img src="" id="rightPanelArtistPhoto" class="artist-avatar" alt="Artiste">
+        <div class="artist-card-details">
+          <span id="rightPanelArtistName" class="artist-name">Artiste</span>
+          <span class="verified-badge">✔ Artiste Vérifié</span>
+        </div>
+      </div>
+      <p id="rightPanelArtistBio" class="artist-bio">Lecture en cours.</p>
+    </div>
+  </aside>
+
+  <!-- MODAL DÉTAILS -->
+  <div class="details-panel-container" id="detailsPanelContainer" style="display: none;">
+    <div class="details-panel" id="detailsPanel">
+      <button class="close-details-btn" id="closeDetailsBtn">✕</button>
+      <div class="details-overlay">
+        <div class="details-content">
+          <h1 id="detailsTitle">Titre</h1>
+          <div class="details-meta">
+            <span class="badge" id="detailsType">Type</span>
+            <span id="detailsAuthor" class="author">Auteur</span>
+            <span id="detailsDate">Date</span>
+            <span id="detailsDuration">Durée</span>
+          </div>
+          <p id="detailsDescription" class="details-description">Description...</p>
+          <div class="details-actions">
+            <button class="btn-play" id="detailsPlayBtn">▶ Lecture</button>
+            <button class="btn-secondary" id="detailsAddBtn">+ Ma Liste</button>
+            <button class="btn-danger" id="detailsDeleteBtn">🗑 Supprimer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL D'AJOUT -->
+  <div class="modal" id="addVideoModal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-modal" id="closeAjoutBtn">&times;</span>
+      <h2>Ajouter un contenu</h2>
+      <form id="formAjoutVideo">
+        <div class="form-group">
+          <label for="videoType">Type de contenu :</label>
+          <select id="videoType" required>
+            <option value="film">Film / Série (.mp4)</option>
+            <option value="video">Vidéo YouTube</option>
+            <option value="musique">Musique</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="groupMusicSource" style="display: none;">
+          <label for="musicSourceType">Source de la musique :</label>
+          <select id="musicSourceType">
+            <option value="youtube">Lien YouTube</option>
+            <option value="file">Fichier MP3 / Lien direct</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="groupSubCategory" style="display: none;">
+          <label for="videoSubCategory">Sous-catégorie YouTube :</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="videoSubCategory" style="flex: 1;">
+              <option value="video">Général</option>
+              <option value="jeux-video">Jeux Vidéo</option>
+              <option value="culture">Culture</option>
+              <option value="programmation">Programmation</option>
+            </select>
+            <button type="button" id="btnAjouterCategorie" class="btn-secondary" title="Ajouter une catégorie">+</button>
+          </div>
+          <div id="customCategoryContainer" style="display: none; gap: 8px; margin-top: 8px;">
+            <input type="text" id="newCategoryInput" placeholder="Nom de la nouvelle sous-catégorie..." style="flex: 1;">
+            <button type="button" id="btnValiderCategorie" class="btn-play" style="padding: 6px 12px; font-size: 0.85rem;">Ajouter</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="videoTitle">Titre :</label>
+          <input type="text" id="videoTitle" required placeholder="Ex: Rick et Morty">
+        </div>
+
+        <div class="form-group">
+          <label id="labelAuthor" for="videoAuthor">Créateur / Artiste / Genre :</label>
+          <input type="text" id="videoAuthor" placeholder="Ex: Christopher Nolan">
+        </div>
+
+        <div class="form-group" id="groupYoutubeUrl" style="display: none;">
+          <label for="videoUrl">Lien YouTube :</label>
+          <input type="url" id="videoUrl" placeholder="Ex: https://www.youtube.com/watch?v=...">
+        </div>
+
+        <div class="form-group" id="groupFileUrl">
+          <label id="labelFileUrl" for="videoFileUrl">Lien ou fichier local :</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="videoFileUrl" placeholder="Ex: media/ma-video.mp4" style="flex: 1;">
+            <button type="button" id="btnSystemPicker" class="btn-secondary">Parcourir...</button>
+          </div>
+          <input type="file" id="systemFilePicker" style="display: none;">
+        </div>
+
+        <div class="form-group" id="groupAffiche">
+          <label for="videoAffiche">Lien de l'image de couverture (Optionnel) :</label>
+          <input type="url" id="videoAffiche" placeholder="Ex: https://images.unsplash.com/...">
+        </div>
+
+        <div class="form-group">
+          <label for="videoDuration">Durée (minutes ou saisons) :</label>
+          <input type="number" id="videoDuration" min="1" placeholder="Ex: 169">
+        </div>
+
+        <div class="form-group">
+          <label for="videoDescription">Description :</label>
+          <textarea id="videoDescription" rows="3" placeholder="Résumé..."></textarea>
+        </div>
+
+        <button type="submit" id="btnSubmitForm" class="btn-play" style="width: 100%; margin-top: 10px;">Valider et ajouter</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- LECTEUR FULLSCREEN -->
+  <div class="player-modal" id="playerModal" style="display: none;">
+    <button class="close-player-btn" id="closePlayerBtn">✕</button>
+    <video id="localVideoPlayer" controls style="display: none; width: 80%; max-height: 80vh;"></video>
+    <iframe id="youtubeVideoPlayer" style="display: none; width: 80%; height: 75vh; border: none; border-radius: 8px;" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+  </div>
+
+  <!-- BARRE AUDIO PERMANENTE -->
+  <div class="persistent-audio-player" id="persistentAudioPlayer" style="display: none;">
+    <button class="close-audio-bar" id="closeAudioBar" title="Fermer le lecteur">✕</button>
+    <audio id="localAudioPlayer"></audio>
+    
+    <div class="audio-player-left">
+      <img src="" id="audioPlayerCover" alt="Cover">
+      <div class="audio-track-info">
+        <div id="audioPlayerTitle" class="track-title-mini">Titre</div>
+        <div id="audioPlayerArtist" class="track-artist-mini">Artiste</div>
+      </div>
+    </div>
+
+    <div class="audio-player-center">
+      <div class="audio-controls">
+        <button class="control-btn" id="audioBtnPrev" title="Précédent">⏮</button>
+        <button class="control-btn play-main" id="audioBtnPlayPause" title="Jouer / Pause">▶</button>
+        <button class="control-btn" id="audioBtnNext" title="Suivant">⏭</button>
+      </div>
+      <div class="audio-progress-row">
+        <span id="audioCurrentTime" class="time-display">0:00</span>
+        <div class="progress-bar-container" id="progressContainer">
+          <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+        <span id="audioDuration" class="time-display">0:00</span>
+      </div>
+    </div>
+
+    <div class="audio-player-right">
+      <button class="volume-icon-btn" id="volumeIconBtn">🔊</button>
+      <div class="volume-bar-container" id="volumeContainer">
+        <div class="volume-bar-fill" id="volumeBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANNEAU TIROIR BLOC-NOTES -->
+  <aside class="notes-drawer" id="notesDrawer">
+    <header class="notes-header">
+      <h2>Bloc-notes</h2>
+      <button class="notes-close-btn" id="closeNotesBtn" title="Fermer">✕</button>
+    </header>
+
+    <div class="notes-actions">
+      <button class="btn-new-note" id="btnNewNote">+ Nouveau document</button>
+    </div>
+
+    <!-- LISTE DES NOTES -->
+    <div class="notes-list" id="notesListContainer"></div>
+
+    <!-- ÉDITEUR D'ÉCRITURE EN SUPERPOSITION -->
+    <div class="note-editor" id="noteEditor">
+      <input type="text" id="noteTitleInput" placeholder="Titre du document..." />
+      <textarea id="noteContentInput" placeholder="Écrivez votre note ici..."></textarea>
+      <div class="note-editor-actions">
+        <button class="btn-secondary" id="btnBackToList">Annuler</button>
+        <button class="btn-play" id="btnSaveNote">Enregistrer</button>
+      </div>
+    </div>
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>
