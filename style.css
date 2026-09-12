@@ -26,8 +26,7 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   position: fixed;
   top: 0; left: 0; right: 0;
   height: var(--topbar-height);
-  background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(20,20,20,0) 100%);
-  background-color: rgba(20, 20, 20, 0.9);
+  background-color: rgba(20, 20, 20, 0.95);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -35,9 +34,23 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   z-index: 1000;
 }
 
-.topbar-left { display: flex; align-items: center; gap: 25px; }
-.logo { font-size: 1.5rem; font-weight: 900; color: var(--primary-red); letter-spacing: 1px; cursor: pointer; }
-.navbar { display: flex; align-items: center; gap: 8px; }
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+.logo { 
+  font-size: 1.5rem; 
+  font-weight: 900; 
+  color: var(--primary-red); 
+  letter-spacing: 1px; 
+  cursor: pointer; 
+}
+.navbar { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+}
 
 .nav-item {
   background: transparent; border: none; color: #e5e5e5;
@@ -54,12 +67,26 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 }
 .btn-add-content:hover { background-color: #f40612; transform: scale(1.05); }
 
-.topbar-right { display: flex; align-items: center; gap: 20px; }
-.search-container input {
-  background-color: rgba(0, 0, 0, 0.75); border: 1px solid #333; color: white;
-  padding: 6px 14px; border-radius: 20px; width: 150px; outline: none; font-size: 0.85rem; transition: width 0.3s;
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
-.search-container input:focus { width: 220px; border-color: #666; }
+.search-container input {
+  background-color: rgba(0, 0, 0, 0.75);
+  border: 1px solid #333;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  width: 180px;
+  outline: none;
+  font-size: 0.85rem;
+  transition: width 0.3s;
+}
+.search-container input:focus {
+  width: 240px;
+  border-color: #666;
+}
 
 .icon-btn { background: transparent; border: none; color: #ffffff; cursor: pointer; display: flex; align-items: center; font-size: 1.1rem; }
 
