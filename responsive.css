@@ -63,12 +63,13 @@
     background: rgba(20, 20, 20, 0.95);
     backdrop-filter: blur(10px);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: space-between;
     padding: 8px 12px;
     z-index: 1000;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     transition: transform 0.3s ease-in-out;
+    align-items: baseline;
   }
 
   .topbar.topbar-hidden {
@@ -81,6 +82,10 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
+  }
+
+  .topbar-row-top {
+  display: block;
   }
 
   .logo a {
@@ -100,6 +105,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    margin: 0px 0px 0px -20px;
   }
 
   /* --- NAVBAR HORIZONTALE SCROLLABLE (Ligne du bas de la topbar) --- */
