@@ -1,6 +1,19 @@
 // ==========================================================================
 // 1. BASE DE DONNÉES LOCALE & SYSTEME DE NOTIFICATIONS
 // ==========================================================================
+const videosInitiales = [
+  {
+    id: 1,
+    titre: "Exemple de Film",
+    auteur: "Réalisateur",
+    type: "film",
+    duree: 120,
+    description: "Ceci est un film d'exemple.",
+    affiche: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800",
+    fileUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+    dateSortie: "2026"
+  }
+];
 
 let listeFilms    = JSON.parse(localStorage.getItem('mesVideosNetflix')) || videosInitiales;
 let mesPlaylists  = JSON.parse(localStorage.getItem('mesPlaylistsMusic'))  || [];
