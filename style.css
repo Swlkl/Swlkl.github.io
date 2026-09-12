@@ -34,6 +34,11 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
   z-index: 1000;
 }
 
+.topbar-row-top {
+  display: flex;
+  gap: 3vh;
+}
+
 .topbar-left {
   display: flex;
   align-items: center;
