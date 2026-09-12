@@ -4,46 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SKINET - MonNetflix & Music</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="CSS/style.css">
+  <link rel="stylesheet" href="CSS/responsive.css">
 </head>
 <body>
 
   <!-- BARRE DU HAUT -->
   <header class="topbar">
-    <div class="topbar-left">
+    <div class="topbar-row-top">
       <div class="logo"><a href="#">SKINET</a></div>
       
-      <nav class="navbar" id="navbar">
-        <button class="nav-item active" id="btnAccueil">Accueil</button>
-        <button class="nav-item" id="btnFilms">Films</button>
-        <button class="nav-item" id="btnVideos">Vidéos YouTube</button>
-        <button class="nav-item" id="btnMusiques">Musiques</button>
-        <button class="nav-item" id="btnNotes">Bloc-notes</button>
-        <button class="nav-item" id="btnMaListe">Ma liste</button>
-        <button class="btn-add-content" id="btnOuvrirAjout">+ Ajouter</button>
-      </nav>
-    </div>
+      <div class="topbar-right">
+        <!-- Barre de recherche (Desktop uniquement) -->
+        <div class="search-container">
+          <input type="text" id="searchBar" placeholder="Rechercher..." autocomplete="off">
+        </div>
 
-    <div class="topbar-right">
-      <div class="search-container">
-        <input type="text" id="searchBar" placeholder="Rechercher..." autocomplete="off">
-      </div>
-
-      <button class="icon-btn" title="Recherche">
-        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M21.71 20.29l-5.01-5.01C17.54 13.92 18 12.02 18 10c0-4.41-3.59-8-8-8S2 5.59 2 10s3.59 8 8 8c2.02 0 3.92-.46 5.28-1.3l5.01 5.01c.39.39 1.02.39 1.41 0 .38-.39.38-1.03-.01-1.42zM4 10c0-3.31 2.69-6 6-6s6 2.69 6 6-2.69 6-6 6-6-2.69-6-6z"/>
-        </svg>
-      </button>
-
-      <div class="notification-container">
-        <button class="icon-btn" id="notificationBtn" title="Notifications">
-          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-          </svg>
-        </button>
-        <span class="notification-badge" id="notificationBadge">0</span>
+        <div class="notification-container">
+          <button class="icon-btn" id="notificationBtn" title="Notifications">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+            </svg>
+          </button>
+          <span class="notification-badge" id="notificationBadge">0</span>
+        </div>
       </div>
     </div>
+
+    <!-- NAVBAR (Scrollable horizontalement sur mobile) -->
+    <nav class="navbar" id="navbar">
+      <button class="nav-item active" id="btnAccueil">Accueil</button>
+      <button class="nav-item" id="btnFilms">Films</button>
+      <button class="nav-item" id="btnVideos">Vidéos YouTube</button>
+      <button class="nav-item" id="btnMusiques">Musiques</button>
+      <button class="nav-item" id="btnNotes">Bloc-notes</button>
+      <button class="nav-item" id="btnMaListe">Ma liste</button>
+      <button class="btn-add-content" id="btnOuvrirAjout">+ Ajouter</button>
+    </nav>
   </header>
 
   <!-- CONTENU PRINCIPAL CENTRAL -->
@@ -77,6 +74,13 @@
     <h1 id="pageTitle" class="page-title" style="display: none;">Accueil</h1>
     <div id="catalog"></div>
   </main>
+
+  <!-- BARRE DE RECHERCHE MOBILE FIXE EN BAS -->
+  <div class="mobile-search-bar" id="mobileSearchBar">
+    <div class="search-container">
+      <input type="text" id="searchBarMobile" placeholder="Rechercher..." autocomplete="off">
+    </div>
+  </div>
 
   <!-- PANNEAU DROIT : EN COURS DE LECTURE -->
   <aside class="right-panel" id="rightMusicPanel" style="display: none;">
