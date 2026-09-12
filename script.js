@@ -1,86 +1,6 @@
 // ==========================================================================
 // 1. BASE DE DONNÉES LOCALE & SYSTEME DE NOTIFICATIONS
 // ==========================================================================
-const videosInitiales = [
-  {
-    id: 1,
-    titre: "Interstellar",
-    auteur: "Christopher Nolan",
-    type: "film",
-    duree: 169,
-    pegi: "12+",
-    genre: "Science-Fiction",
-    affiche: "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800",
-    fileUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    description: "Une équipe d'explorateurs voyage à travers un trou de ver dans l'espace pour sauver l'humanité.",
-    dateSortie: "2014"
-  },
-  {
-    id: 2,
-    titre: "Inception",
-    auteur: "Christopher Nolan",
-    type: "film",
-    duree: 148,
-    pegi: "12+",
-    genre: "Action",
-    affiche: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800",
-    fileUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    description: "Un voleur qui s'infiltre dans les rêves des autres se voit offrir une chance de récupérer sa vie passée.",
-    dateSortie: "2010"
-  },
-  {
-    id: 3,
-    titre: "The Dark Knight",
-    auteur: "Christopher Nolan",
-    type: "film",
-    duree: 152,
-    pegi: "12+",
-    genre: "Action",
-    affiche: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800",
-    fileUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-    description: "Batman affronte le Joker, un criminel sadique qui plonge Gotham City dans le chaos.",
-    dateSortie: "2008"
-  },
-  {
-    id: 4,
-    titre: "Avatar",
-    auteur: "James Cameron",
-    type: "film",
-    duree: 162,
-    pegi: "12+",
-    genre: "Aventure",
-    affiche: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800",
-    fileUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-    description: "Un marine paraplégique est envoyé sur la lune Pandora pour une mission unique.",
-    dateSortie: "2009"
-  },
-  {
-    id: 5,
-    titre: "Rick et Morty",
-    auteur: "Justin Roiland",
-    type: "film",
-    saisons: "8",
-    pegi: "16+",
-    genre: "Animation",
-    affiche: "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800",
-    fileUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    description: "Dans cette série d'animation impertinente, un scientifique et son petit-fils voyagent dans d'autres dimensions.",
-    dateSortie: "2023"
-  },
-  {
-    id: 6,
-    titre: "See You Again",
-    auteur: "Tyler, The Creator",
-    type: "musique",
-    musicSource: "file",
-    affiche: "https://images.unsplash.com/photo-1614680376593-902f74fa0d41?q=80&w=500",
-    youtubeId: "",
-    fileUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    description: "Titre à succès extrait de l'album Flower Boy.",
-    dateSortie: "2017",
-    duree: 4
-  }
-];
 
 let listeFilms    = JSON.parse(localStorage.getItem('mesVideosNetflix')) || videosInitiales;
 let mesPlaylists  = JSON.parse(localStorage.getItem('mesPlaylistsMusic'))  || [];
@@ -675,7 +595,7 @@ function genererCatalogue(onglet) {
           <img src="${pl.affiche || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?q=80&w=200'}" alt="${pl.titre}">
           <span class="pl-title" style="flex: 1;">${pl.titre} (${pl.titresIds ? pl.titresIds.length : 0})</span>
           <button class="btn-play-pl" title="Lancer la playlist" style="background: transparent; border: none; color: #1ed760; font-size: 1.2rem; cursor: pointer; margin-right: 8px;">▶</button>
-          <button class="btn-delete-pl" title="Supprimer la playlist" style="background: transparent; border: none; color: #e50914; font-size: 1rem; cursor: pointer;">Suprimer</button>
+          <button class="btn-delete-pl" title="Supprimer la playlist" style="background: transparent; border: none; color: #e50914; font-size: 1rem; cursor: pointer;">Supprimer</button>
         `;
 
         div.querySelector('.btn-play-pl').addEventListener('click', (e) => {
@@ -1362,7 +1282,7 @@ function afficherNotes() {
         <div class="note-item-title">${note.titre || 'Document sans titre'}</div>
         <div class="note-item-snippet">${note.contenu || 'Document vide...'}</div>
       </div>
-      <button class="btn-delete-note" title="Supprimer">Suppreimer</button>
+      <button class="btn-delete-note" title="Supprimer">Supprimer</button>
     `;
 
     item.querySelector('.note-item-content').addEventListener('click', () => ouvrirEditeurNote(note));
@@ -1439,4 +1359,21 @@ if (btnSaveNote) {
 document.addEventListener('DOMContentLoaded', () => {
   mettreAJourNotificationsUI();
   genererCatalogue('accueil');
+});
+
+// --- EFFET DE SCROLL NETFLIX POUR LA TOPBAR SUR MOBILE ---
+let lastScrollTop = 0;
+const topbar = document.querySelector('.topbar');
+
+window.addEventListener('scroll', function() {
+  if (window.innerWidth <= 768 && topbar) {
+    let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    if (scrollTop > lastScrollTop && scrollTop > 50) {
+      topbar.classList.add('topbar-hidden');
+    } else {
+      topbar.classList.remove('topbar-hidden');
+    }
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; 
+  }
 });
