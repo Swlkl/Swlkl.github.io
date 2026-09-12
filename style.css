@@ -658,3 +658,7 @@ body.music-playing .main-content { margin-right: 340px; }
   padding-top: 12px;
   border-top: 1px solid #2c2c2e;
 }
+
+.mobile-search-bar {
+  visibility: hidden;
+}
