@@ -1,0 +1,189 @@
+@media screen and (max-width: 768px) {
+  :root {
+    --topbar-height: 95px; /* Hauteur ajustée pour les deux lignes du haut */
+  }
+
+  /* --- TOPBAR --- */
+  .hero-title {
+    font-size: 12px;
+  }
+
+  .hero-category-badge {
+    font-size: 9px;
+  }
+
+  .hero-overlay {
+    padding: 20px;
+  }
+
+  .btn-hero-play {
+    padding: 0 24px;
+    height: 35px;
+  }
+
+  .btn-hero-info {
+    padding: 0 24px;
+    height: 35px;
+  }
+
+  .hero-description {
+    font-size: 10px;
+  }
+
+  .hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9rem;
+    color: #ffffff;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  .hero-details {
+    margin-bottom: 30px;
+  }
+
+  .btn-hero-info {
+    background-color: rgba(109, 109, 110, 0.7);
+    color: #ffffff;
+    border: none;
+    padding: 10px 24px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border-radius: 20px;
+  }
+
+  .topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--topbar-height);
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px 12px;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .topbar.topbar-hidden {
+    transform: translateY(-100%);
+  }
+
+  /* Ligne supérieure : Logo à gauche, Notifications à droite */
+  .topbar-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .logo a {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #fff;
+    text-decoration: none;
+    letter-spacing: 1px;
+  }
+
+  /* Masquer la recherche du haut sur mobile */
+  .topbar-right .search-container {
+    display: none !important;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* --- NAVBAR HORIZONTALE SCROLLABLE (Ligne du bas de la topbar) --- */
+  .navbar {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    gap: 8px;
+    padding-bottom: 4px;
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .navbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
+
+  .nav-item, .btn-add-content {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e5e5e5;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .nav-item.active {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-weight: 600;
+    border-color: #ffffff;
+  }
+
+  /* --- BARRE DE RECHERCHE FIXE EN BAS (MOBILE) --- */
+  .mobile-search-bar {
+    position: fixed;
+    bottom: 5px;
+    width: 83%;
+    height: 49px;
+    border-radius: 35px;
+    justify-self: center;
+    background-color: rgba(20, 20, 20, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+
+  .mobile-search-bar .search-container {
+    display: block !important;
+    width: 95%;
+  }
+
+  .mobile-search-bar .search-container input {
+    width: 100% !important;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 9px 16px;
+    border-radius: 20px;
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  /* --- CONTENU --- */
+  .main-content {
+    margin-top: calc(var(--topbar-height) + 10px);
+    padding: 10px;
+    padding-bottom: 80px; /* Évite que le contenu soit masqué par la barre du bas */
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .grid-mode, .grid-film-mode {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .hero-banner {
+    height: 50vh;
+  }
+}
