@@ -1016,8 +1016,28 @@
     }
 
     // ==========================================================================
-    // FORMULAIRE D'AJOUT
+    // FORMULAIRE D'AJOUT & EXTRACTION AUTOMATIQUE DE LA MINIATURE YOUTUBE
     // ==========================================================================
+    const videoUrlInput = document.getElementById('videoUrl');
+    const videoAfficheInput = document.getElementById('videoAffiche');
+
+    const extraireIdYoutube = (url) => {
+      const match = url.match(/(?:v=|\/embed\/|\/1\/|\/v\/|https:\/\/youtu\.be\/|\/e\/|watch\?v=|&v=)([^#&?]*)/);
+      return (match && match[1].length === 11) ? match[1] : null;
+    };
+
+    if (videoUrlInput && videoAfficheInput) {
+      videoUrlInput.addEventListener('input', () => {
+        const youtubeId = extraireIdYoutube(videoUrlInput.value.trim());
+        if (youtubeId) {
+          const miniatureAuto = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+          if (!videoAfficheInput.value.trim() || videoAfficheInput.value.includes('img.youtube.com')) {
+            videoAfficheInput.value = miniatureAuto;
+          }
+        }
+      });
+    }
+
     if (btnOuvrirAjout) btnOuvrirAjout.onclick = () => { if (addVideoModal) addVideoModal.style.display = 'flex'; };
     if (closeAjoutBtn) closeAjoutBtn.onclick = () => { if (addVideoModal) addVideoModal.style.display = 'none'; };
 
@@ -1132,15 +1152,16 @@
         const authorInput      = document.getElementById('videoAuthor') ? document.getElementById('videoAuthor').value : '';
         const durationInput    = document.getElementById('videoDuration') ? (parseInt(document.getElementById('videoDuration').value) || 0) : 0;
         const descriptionInput = document.getElementById('videoDescription') ? document.getElementById('videoDescription').value : '';
-        const afficheInput     = document.getElementById('videoAffiche') ? document.getElementById('videoAffiche').value : '';
-        const videoUrlInput    = document.getElementById('videoUrl') ? document.getElementById('videoUrl').value : '';
+        const rawAfficheInput  = document.getElementById('videoAffiche') ? document.getElementById('videoAffiche').value : '';
+        const rawVideoUrlInput = videoUrlInput ? videoUrlInput.value : '';
         const fileUrlInput     = videoFileUrl ? videoFileUrl.value : '';
 
         let youtubeId = "";
-        if ((isYoutube || (isMusique && musicSourceType && musicSourceType.value === 'youtube')) && videoUrlInput) {
-          const match = videoUrlInput.match(/(?:v=|\/embed\/|\/1\/|\/v\/|https:\/\/youtu\.be\/|\/e\/|watch\?v=|&v=)([^#&?]*)/);
-          if (match && match[1].length === 11) youtubeId = match[1];
+        if ((isYoutube || (isMusique && musicSourceType && musicSourceType.value === 'youtube')) && rawVideoUrlInput) {
+          youtubeId = extraireIdYoutube(rawVideoUrlInput);
         }
+
+        const afficheInput = rawAfficheInput || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800');
 
         const nouveauContenu = {
           id: Date.now(),
@@ -1149,7 +1170,7 @@
           type: finalType,
           duree: durationInput,
           description: descriptionInput,
-          affiche: afficheInput || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800'),
+          affiche: afficheInput,
           fileUrl: fileUrlInput,
           youtubeId: youtubeId,
           dateSortie: new Date().getFullYear().toString()
