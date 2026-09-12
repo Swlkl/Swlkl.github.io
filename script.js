@@ -666,7 +666,7 @@ function genererCatalogue(onglet) {
 
     const plContainer = document.getElementById('playlistsContainer');
     if (mesPlaylists.length === 0) {
-      plContainer.innerHTML = "<p class='empty-msg' style='grid-column: 1/-1;'>Aucune playlist créée.</p>";
+      plContainer.innerHTML = "<p class='empty-msg' style='grid-column: 1/-1; user-select: none;'>Aucune playlist créée.</p>";
     } else {
       mesPlaylists.forEach((pl, index) => {
         const div = document.createElement('div');
@@ -675,7 +675,7 @@ function genererCatalogue(onglet) {
           <img src="${pl.affiche || 'https://images.unsplash.com/photo-1614680376593-902f74fa0d41?q=80&w=200'}" alt="${pl.titre}">
           <span class="pl-title" style="flex: 1;">${pl.titre} (${pl.titresIds ? pl.titresIds.length : 0})</span>
           <button class="btn-play-pl" title="Lancer la playlist" style="background: transparent; border: none; color: #1ed760; font-size: 1.2rem; cursor: pointer; margin-right: 8px;">▶</button>
-          <button class="btn-delete-pl" title="Supprimer la playlist" style="background: transparent; border: none; color: #e50914; font-size: 1rem; cursor: pointer;">🗑</button>
+          <button class="btn-delete-pl" title="Supprimer la playlist" style="background: transparent; border: none; color: #e50914; font-size: 1rem; cursor: pointer;">Suprimer</button>
         `;
 
         div.querySelector('.btn-play-pl').addEventListener('click', (e) => {
@@ -1350,7 +1350,7 @@ function afficherNotes() {
   notesListContainer.innerHTML = '';
 
   if (mesNotes.length === 0) {
-    notesListContainer.innerHTML = '<p class="empty-msg" style="text-align:center; padding: 20px; color: #888;">Aucun document enregistré.</p>';
+    notesListContainer.innerHTML = '<p class="empty-msg" style="user-select: none; text-align:center; padding: 20px; color: #888;">Aucun document enregistré.</p>';
     return;
   }
 
@@ -1362,7 +1362,7 @@ function afficherNotes() {
         <div class="note-item-title">${note.titre || 'Document sans titre'}</div>
         <div class="note-item-snippet">${note.contenu || 'Document vide...'}</div>
       </div>
-      <button class="btn-delete-note" title="Supprimer">🗑</button>
+      <button class="btn-delete-note" title="Supprimer">Suppreimer</button>
     `;
 
     item.querySelector('.note-item-content').addEventListener('click', () => ouvrirEditeurNote(note));
