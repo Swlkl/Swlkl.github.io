@@ -1149,7 +1149,7 @@
           type: finalType,
           duree: durationInput,
           description: descriptionInput,
-          affiche: afficheInput || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800',
+          affiche: afficheInput || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800'),
           fileUrl: fileUrlInput,
           youtubeId: youtubeId,
           dateSortie: new Date().getFullYear().toString()
