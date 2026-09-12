@@ -14,8 +14,20 @@
   <header class="topbar">
     <div class="topbar-row-top">
       <div class="logo"><a href="#">SKINET</a></div>
-      
-      <div class="topbar-right">
+
+      <!-- NAVBAR (Scrollable horizontalement sur mobile) -->
+      <nav class="navbar" id="navbar">
+      <button class="nav-item active" id="btnAccueil">Accueil</button>
+      <button class="nav-item" id="btnFilms">Films</button>
+      <button class="nav-item" id="btnVideos">Vidéos YouTube</button>
+      <button class="nav-item" id="btnMusiques">Musiques</button>
+      <button class="nav-item" id="btnNotes">Bloc-notes</button>
+      <button class="nav-item" id="btnMaListe">Ma liste</button>
+      <button class="btn-add-content" id="btnOuvrirAjout">+ Ajouter</button>
+    </nav>
+    </div>
+
+    <div class="topbar-right">
         <!-- Barre de recherche (Desktop uniquement) -->
         <div class="search-container">
           <input type="text" id="searchBar" placeholder="Rechercher..." autocomplete="off">
@@ -29,19 +41,6 @@
           </button>
           <span class="notification-badge" id="notificationBadge">0</span>
         </div>
-      </div>
-    </div>
-
-    <!-- NAVBAR (Scrollable horizontalement sur mobile) -->
-    <nav class="navbar" id="navbar">
-      <button class="nav-item active" id="btnAccueil">Accueil</button>
-      <button class="nav-item" id="btnFilms">Films</button>
-      <button class="nav-item" id="btnVideos">Vidéos YouTube</button>
-      <button class="nav-item" id="btnMusiques">Musiques</button>
-      <button class="nav-item" id="btnNotes">Bloc-notes</button>
-      <button class="nav-item" id="btnMaListe">Ma liste</button>
-      <button class="btn-add-content" id="btnOuvrirAjout">+ Ajouter</button>
-    </nav>
   </header>
 
   <!-- CONTENU PRINCIPAL CENTRAL -->
