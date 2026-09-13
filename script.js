@@ -50,7 +50,7 @@
     // ==========================================================================
     async function chargerDonneesCloud() {
       try {
-        // Récupérer depuis la table "app_config"
+        // Récupérer depuis la table "app_data" (ou autre table unique de stockage global)
         const { data, error } = await _supabase
           .from('app_config')
           .select('payload')
@@ -1282,60 +1282,19 @@
     }
 
     // ==========================================================================
-    // GESTION DE LA SESSION & AUTHENTIFICATION SUPABASE
-    // ==========================================================================
-    async function verifierSessionUtilisateur() {
-      const loginModal = document.getElementById('loginModal');
-      const { data: { session }, error } = await _supabase.auth.getSession();
-
-      if (!session) {
-        if (loginModal) loginModal.style.display = 'flex';
-        return false;
-      } else {
-        if (loginModal) loginModal.style.display = 'none';
-        return true;
-      }
-    }
-
-    // ==========================================================================
-    // INITIALISATION AU CHARGEMENT (AVEC AUTHENTIFICATION OBLIGATOIRE)
+    // INITIALISATION AU CHARGEMENT (CHARGEMENT DEPUIS SUPABASE)
     // ==========================================================================
     document.addEventListener('DOMContentLoaded', async () => {
-      const estConnecte = await verifierSessionUtilisateur();
+      const donnees = await chargerDonneesCloud();
+      
+      listeFilms    = donnees.films || videosInitiales;
+      mesPlaylists  = donnees.playlists || [];
+      maListe       = donnees.maListe || [];
+      notifications = donnees.notifications || [];
+      mesNotes      = donnees.notes || [];
 
-      const loginForm = document.getElementById('loginForm');
-      if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const email = document.getElementById('loginEmail').value.trim();
-          const password = document.getElementById('loginPassword').value;
-
-          const { data, error } = await _supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-          });
-
-          if (error) {
-            alert("Erreur de connexion : Identifiants incorrects.");
-          } else {
-            document.getElementById('loginModal').style.display = 'none';
-            location.reload();
-          }
-        });
-      }
-
-      if (estConnecte) {
-        const donnees = await chargerDonneesCloud();
-        
-        listeFilms    = donnees.films || videosInitiales;
-        mesPlaylists  = donnees.playlists || [];
-        maListe       = donnees.maListe || [];
-        notifications = donnees.notifications || [];
-        mesNotes      = donnees.notes || [];
-
-        mettreAJourNotificationsUI();
-        genererCatalogue('accueil');
-      }
+      mettreAJourNotificationsUI();
+      genererCatalogue('accueil');
     });
 
     // Effet scroll topbar mobile
@@ -1349,3 +1308,107 @@
         lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; 
       }
     });
+
+    // --- GESTION DU MENU COMPTE & PROFIL ---
+    const userAccountBtn = document.getElementById('userAccountBtn');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+    const profileModal = document.getElementById('profileModal');
+    const closeProfileModal = document.getElementById('closeProfileModal');
+    const btnOpenProfileModal = document.getElementById('btnOpenProfileModal');
+    const formUpdateProfile = document.getElementById('formUpdateProfile');
+    const BtnUserLogout = document.getElementById('BtnUserLogout');
+
+    // Ouvrir / Fermer le menu déroulant du compte
+    if (userAccountBtn && userDropdownMenu) {
+      userAccountBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdownMenu.classList.toggle('active');
+      });
+    }
+
+    // Fermer le menu si on clique ailleurs sur la page
+    document.addEventListener('click', (e) => {
+      if (userDropdownMenu && !userDropdownMenu.contains(e.target) && userAccountBtn && !userAccountBtn.contains(e.target)) {
+        userDropdownMenu.classList.remove('active');
+      }
+    });
+
+    // Charger les informations de l'utilisateur connecté dans l'UI
+    async function chargerInfosUtilisateur() {
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (!session) return;
+
+      const user = session.user;
+      const metadata = user.user_metadata || {};
+      const pseudo = metadata.pseudo || user.email.split('@')[0];
+      const avatar = metadata.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200';
+
+      // Mise à jour des éléments visuels
+      const userPseudoLabel = document.getElementById('userPseudoLabel');
+      const userAvatarThumb = document.getElementById('userAvatarThumb');
+      const userAvatarMenu = document.getElementById('userAvatarMenu');
+      const dropdownPseudo = document.getElementById('dropdownPseudo');
+      const dropdownEmail = document.getElementById('dropdownEmail');
+
+      if (userPseudoLabel) userPseudoLabel.textContent = pseudo;
+      if (userAvatarThumb) userAvatarThumb.src = avatar;
+      if (userAvatarMenu) userAvatarMenu.src = avatar;
+      if (dropdownPseudo) dropdownPseudo.textContent = pseudo;
+      if (dropdownEmail) dropdownEmail.textContent = user.email;
+    }
+
+    // Ouvrir la modale de modification de profil
+    if (btnOpenProfileModal) {
+      btnOpenProfileModal.addEventListener('click', async () => {
+        if (userDropdownMenu) userDropdownMenu.classList.remove('active');
+        if (profileModal) profileModal.style.display = 'flex';
+        
+        // Pré-remplir les champs avec les données actuelles
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (session && session.user.user_metadata) {
+          const meta = session.user.user_metadata;
+          const updatePseudo = document.getElementById('updatePseudo');
+          const updateAvatarUrl = document.getElementById('updateAvatarUrl');
+          if (updatePseudo) updatePseudo.value = meta.pseudo || '';
+          if (updateAvatarUrl) updateAvatarUrl.value = meta.avatar || '';
+        }
+      });
+    }
+
+    if (closeProfileModal) {
+      closeProfileModal.addEventListener('click', () => {
+        if (profileModal) profileModal.style.display = 'none';
+      });
+    }
+
+    // Enregistrer les modifications du profil dans Supabase Auth (via updateUser)
+    if (formUpdateProfile) {
+      formUpdateProfile.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nouveauPseudo = document.getElementById('updatePseudo').value.trim();
+        const nouvelleAvatar = document.getElementById('updateAvatarUrl').value.trim();
+
+        const { error } = await _supabase.auth.updateUser({
+          data: {
+            pseudo: nouveauPseudo,
+            avatar: nouvelleAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200'
+          }
+        });
+
+        if (error) {
+          alert("Erreur lors de la mise à jour : " + error.message);
+        } else {
+          alert("Profil mis à jour avec succès !");
+          if (profileModal) profileModal.style.display = 'none';
+          chargerInfosUtilisateur();
+        }
+      });
+    }
+
+    // Gérer la déconnexion
+    if (BtnUserLogout) {
+      BtnUserLogout.addEventListener('click', async () => {
+        await _supabase.auth.signOut();
+        location.reload(); // Recharge la page pour afficher l'écran de connexion
+      });
+    }
