@@ -47,28 +47,27 @@
           <button class="user-account-btn" id="userAccountBtn">
             <img id="userAvatarThumb" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" alt="Avatar" class="user-avatar-img">
           </button>
-          
-          <!-- Menu Déroulant du Compte -->
-          <div class="user-dropdown-menu" id="userDropdownMenu">
-            <div class="user-dropdown-header">
-              <img id="userAvatarMenu" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" alt="Avatar" class="dropdown-avatar">
-              <div class="dropdown-user-info">
-                <span id="dropdownPseudo" class="dropdown-pseudo-display">Utilisateur</span>
-                <span id="dropdownEmail" class="dropdown-email-display">email@exemple.com</span>
-              </div>
+  
+        <!-- Menu Déroulant du Compte -->
+        <div class="user-dropdown-menu" id="userDropdownMenu">
+          <div class="user-dropdown-header">
+            <img id="userAvatarMenu" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" alt="Avatar" class="dropdown-avatar">
+            <div class="dropdown-user-info">
+              <span id="dropdownPseudo" class="dropdown-pseudo-display">Utilisateur</span>
+              <span id="dropdownEmail" class="dropdown-email-display">email@exemple.com</span>
             </div>
-            <div class="user-dropdown-divider"></div>
-            <button class="user-dropdown-item" id="btnOpenProfileModal">Modifier le profil</button>
-            <button class="user-dropdown-item logout" id="BtnUserLogout">Déconnexion</button>
           </div>
-        </div>
+          <div class="user-dropdown-divider"></div>
+          <button class="user-dropdown-item" id="btnOpenProfileModal">Modifier le profil</button>
+          <button class="user-dropdown-item logout" id="BtnUserLogout">Déconnexion</button>
+      </div>
+    </div>
         
         <!-- Modal de Modification du Profil -->
         <div class="modal" id="profileModal" style="display:none;">
           <div class="modal-content" style="max-width: 400px;">
             <div class="profile-header-preview" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
               <img id="previewAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" alt="Photo de profil" class="avatar-preview" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
-              <span id="previewPseudo">Nom d'utilisateur</span>
             </div>
 
             <h3 style="margin-bottom: 16px;">Modifier mon profil</h3>
