@@ -50,7 +50,7 @@
     // ==========================================================================
     async function chargerDonneesCloud() {
       try {
-        // Récupérer depuis la table "app_data" (ou autre table unique de stockage global)
+        // Récupérer depuis la table "app_config"
         const { data, error } = await _supabase
           .from('app_config')
           .select('payload')
@@ -1282,19 +1282,60 @@
     }
 
     // ==========================================================================
-    // INITIALISATION AU CHARGEMENT (CHARGEMENT DEPUIS SUPABASE)
+    // GESTION DE LA SESSION & AUTHENTIFICATION SUPABASE
+    // ==========================================================================
+    async function verifierSessionUtilisateur() {
+      const loginModal = document.getElementById('loginModal');
+      const { data: { session }, error } = await _supabase.auth.getSession();
+
+      if (!session) {
+        if (loginModal) loginModal.style.display = 'flex';
+        return false;
+      } else {
+        if (loginModal) loginModal.style.display = 'none';
+        return true;
+      }
+    }
+
+    // ==========================================================================
+    // INITIALISATION AU CHARGEMENT (AVEC AUTHENTIFICATION OBLIGATOIRE)
     // ==========================================================================
     document.addEventListener('DOMContentLoaded', async () => {
-      const donnees = await chargerDonneesCloud();
-      
-      listeFilms    = donnees.films || videosInitiales;
-      mesPlaylists  = donnees.playlists || [];
-      maListe       = donnees.maListe || [];
-      notifications = donnees.notifications || [];
-      mesNotes      = donnees.notes || [];
+      const estConnecte = await verifierSessionUtilisateur();
 
-      mettreAJourNotificationsUI();
-      genererCatalogue('accueil');
+      const loginForm = document.getElementById('loginForm');
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.getElementById('loginEmail').value.trim();
+          const password = document.getElementById('loginPassword').value;
+
+          const { data, error } = await _supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+
+          if (error) {
+            alert("Erreur de connexion : Identifiants incorrects.");
+          } else {
+            document.getElementById('loginModal').style.display = 'none';
+            location.reload();
+          }
+        });
+      }
+
+      if (estConnecte) {
+        const donnees = await chargerDonneesCloud();
+        
+        listeFilms    = donnees.films || videosInitiales;
+        mesPlaylists  = donnees.playlists || [];
+        maListe       = donnees.maListe || [];
+        notifications = donnees.notifications || [];
+        mesNotes      = donnees.notes || [];
+
+        mettreAJourNotificationsUI();
+        genererCatalogue('accueil');
+      }
     });
 
     // Effet scroll topbar mobile
