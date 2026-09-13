@@ -41,6 +41,48 @@
           </button>
           <span class="notification-badge" id="notificationBadge">0</span>
         </div>
+
+        <!-- Bouton du Compte Utilisateur -->
+        <div class="user-account-wrapper" id="userAccountWrapper">
+          <button class="user-account-btn" id="userAccountBtn">
+            <img id="userAvatarThumb" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" alt="Avatar" class="user-avatar-img">
+          </button>
+          
+          <!-- Menu Déroulant du Compte -->
+          <div class="user-dropdown-menu" id="userDropdownMenu">
+            <div class="user-dropdown-header">
+              <img id="userAvatarMenu" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" alt="Avatar" class="dropdown-avatar">
+              <div class="dropdown-user-info">
+                <span id="dropdownPseudo" class="dropdown-pseudo-display">Utilisateur</span>
+                <span id="dropdownEmail" class="dropdown-email-display">email@exemple.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-divider"></div>
+            <button class="user-dropdown-item" id="btnOpenProfileModal">Modifier le profil</button>
+            <button class="user-dropdown-item logout" id="BtnUserLogout">Déconnexion</button>
+          </div>
+        </div>
+        
+        <!-- Modal de Modification du Profil -->
+        <div class="modal" id="profileModal" style="display:none;">
+          <div class="modal-content" style="max-width: 400px;">
+            <h3>Modifier mon profil</h3>
+            <form id="formUpdateProfile">
+              <div class="form-group">
+                <label for="updatePseudo">Pseudo :</label>
+                <input type="text" id="updatePseudo" placeholder="Votre nouveau pseudo" required>
+              </div>
+              <div class="form-group">
+                <label for="updateAvatarUrl">URL de la photo de profil :</label>
+                <input type="url" id="updateAvatarUrl" placeholder="https://exemple.com/image.jpg">
+              </div>
+              <div class="modal-buttons">
+                <button type="button" class="btn-secondary" id="closeProfileModal">Annuler</button>
+                <button type="submit" class="btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
   </header>
 
   <!-- CONTENU PRINCIPAL CENTRAL -->
@@ -285,23 +327,6 @@
       </div>
     </div>
   </aside>
-
-  <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 99999; justify-content: center; align-items: center; font-family: 'Netflix Sans', 'Segoe UI', Arial, sans-serif;">
-  <div style="background: #141414; padding: 40px; border-radius: 8px; width: 100%; max-width: 400px; color: #fff; box-shadow: 0 4px 25px rgba(0,0,0,0.7); border: 1px solid #333;">
-    <h2 style="margin-bottom: 25px; font-size: 1.8rem; text-align: center; color: #e50914; font-weight: 700;">Connexion Requise</h2>
-    <form id="loginForm" style="display: flex; flex-direction: column; gap: 20px;">
-      <div>
-        <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: #b3b3b3;">Email</label>
-        <input type="email" id="loginEmail" required placeholder="ex: swiki@app.local" style="width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 4px; color: #fff; font-size: 1rem;">
-      </div>
-      <div>
-        <label style="display: block; margin-bottom: 8px; font-size: 0.9rem; color: #b3b3b3;">Mot de passe</label>
-        <input type="password" id="loginPassword" required placeholder="••••••••" style="width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 4px; color: #fff; font-size: 1rem;">
-      </div>
-      <button type="submit" style="background: #e50914; color: white; border: none; padding: 14px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.2s;">Se connecter</button>
-    </form>
-  </div>
-</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
