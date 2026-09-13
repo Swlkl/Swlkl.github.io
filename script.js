@@ -50,7 +50,7 @@
     // ==========================================================================
     async function chargerDonneesCloud() {
       try {
-        // Récupérer depuis la table "app_data" (ou autre table unique de stockage global)
+        // Récupérer depuis la table "app_config" (ou autre table unique de stockage global)
         const { data, error } = await _supabase
           .from('app_config')
           .select('payload')
@@ -1281,22 +1281,6 @@
       });
     }
 
-    // ==========================================================================
-    // INITIALISATION AU CHARGEMENT (CHARGEMENT DEPUIS SUPABASE)
-    // ==========================================================================
-    document.addEventListener('DOMContentLoaded', async () => {
-      const donnees = await chargerDonneesCloud();
-      
-      listeFilms    = donnees.films || videosInitiales;
-      mesPlaylists  = donnees.playlists || [];
-      maListe       = donnees.maListe || [];
-      notifications = donnees.notifications || [];
-      mesNotes      = donnees.notes || [];
-
-      mettreAJourNotificationsUI();
-      genererCatalogue('accueil');
-    });
-
     // Effet scroll topbar mobile
     let lastScrollTop = 0;
     const topbar = document.querySelector('.topbar');
@@ -1405,10 +1389,108 @@
       });
     }
 
+    // ==========================================================================
+    // GESTION DE L'AUTHENTIFICATION & AFFICHAGE CONDITIONNEL
+    // ==========================================================================
+    const authContainer = document.getElementById('authContainer');
+    const authForm = document.getElementById('authForm');
+    const authEmail = document.getElementById('authEmail');
+    const authPassword = document.getElementById('authPassword');
+    const authTitle = document.getElementById('authTitle');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authSwitchBtn = document.getElementById('authSwitchBtn');
+    const authSwitchText = document.getElementById('authSwitchText');
+    
+    let isSignUpMode = false;
+
+    // Basculer entre Connexion et Inscription
+    if (authSwitchBtn && authSwitchText) {
+      authSwitchBtn.addEventListener('click', () => {
+        isSignUpMode = !isSignUpMode;
+        if (isSignUpMode) {
+          authTitle.textContent = "Inscription à Skinet";
+          authSubmitBtn.textContent = "S'inscrire";
+          authSwitchText.textContent = "Déjà un compte ?";
+          authSwitchBtn.textContent = "Se connecter";
+        } else {
+          authTitle.textContent = "Connexion à Skinet";
+          authSubmitBtn.textContent = "Se connecter";
+          authSwitchText.textContent = "Pas encore de compte ?";
+          authSwitchBtn.textContent = "S'inscrire";
+        }
+      });
+    }
+
+    // Soumission du formulaire d'authentification
+    if (authForm) {
+      authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = authEmail.value.trim();
+        const password = authPassword.value.trim();
+
+        if (isSignUpMode) {
+          // Inscription
+          const { data, error } = await _supabase.auth.signUp({ email, password });
+          if (error) {
+            alert("Erreur d'inscription : " + error.message);
+          } else {
+            alert("Inscription réussie ! Vérifiez vos e-mails si une confirmation est requise, ou connectez-vous.");
+            isSignUpMode = false;
+            authTitle.textContent = "Connexion à Skinet";
+            authSubmitBtn.textContent = "Se connecter";
+          }
+        } else {
+          // Connexion
+          const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+            alert("Erreur de connexion : " + error.message);
+          } else {
+            // Connexion réussie, on masque le formulaire et on charge l'app
+            if (authContainer) authContainer.style.display = 'none';
+            verifierSessionEtChargerApp();
+          }
+        }
+      });
+    }
+
+    // Fonction pour vérifier si l'utilisateur est connecté au démarrage ou après déconnexion
+    async function verifierSessionEtChargerApp() {
+      const { data: { session } } = await _supabase.auth.getSession();
+
+      if (!session) {
+        // Si PAS connecté : on affiche le formulaire de connexion et on masque le contenu
+        if (authContainer) authContainer.style.display = 'flex';
+      } else {
+        // Si connecté : on masque le formulaire et on charge les données
+        if (authContainer) authContainer.style.display = 'none';
+        chargerInfosUtilisateur();
+        
+        const donnees = await chargerDonneesCloud();
+        listeFilms    = donnees.films || videosInitiales;
+        mesPlaylists  = donnees.playlists || [];
+        maListe       = donnees.maListe || [];
+        notifications = donnees.notifications || [];
+        mesNotes      = donnees.notes || [];
+
+        mettreAJourNotificationsUI();
+        genererCatalogue('accueil');
+      }
+    }
+
     // Gérer la déconnexion
     if (BtnUserLogout) {
       BtnUserLogout.addEventListener('click', async () => {
+        if (userDropdownMenu) userDropdownMenu.classList.remove('active');
         await _supabase.auth.signOut();
-        location.reload(); // Recharge la page pour afficher l'écran de connexion
+        
+        // Dès la déconnexion, on réaffiche instantanément l'écran de connexion
+        if (authContainer) authContainer.style.display = 'flex';
       });
     }
+
+    // ==========================================================================
+    // INITIALISATION AU CHARGEMENT
+    // ==========================================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      verifierSessionEtChargerApp();
+    });
