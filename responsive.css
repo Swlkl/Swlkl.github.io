@@ -54,6 +54,10 @@
     border-radius: 20px;
   }
 
+  .auth-card {
+    width: 5%;
+  }
+
   .topbar {
     position: fixed;
     top: 0;
