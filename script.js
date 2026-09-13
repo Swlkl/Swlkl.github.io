@@ -1,9 +1,10 @@
 // ==========================================================================
-    // CONFIGURATION CLOUD (JSONBin.io)
-    // Remplacez les valeurs ci-dessous par votre Bin ID et votre clé API personnelle
+    // CONFIGURATION CLOUD (SUPABASE)
+    // Remplacez les valeurs ci-dessous par votre Project URL et votre clé Anon Key
     // ==========================================================================
-    const JSONBIN_ID = '6aa58bb3ffd5d16053fef81f';
-    const JSONBIN_API_KEY = '$2a$10$i53hTyTlKIgS3YZTFa9S6.39UD/TReHcDkIWU687xY1Yxv4QzCvvO';
+    const SUPABASE_URL = 'https://ymgegbltvlelkzvvwzxp.supabase.co/rest/v1/'; // ex: 'https://xyzcompany.supabase.co'
+    const SUPABASE_ANON_KEY = 'sb_publishable_hp30VcLffFFesEyMv3EKog_STlhk0vA'; // ex: 'eyJhbGciOiJIUzI1Ni...'
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const videosInitiales = [
       {
@@ -45,18 +46,21 @@
     let filtreTriActif = 'recent';
 
     // ==========================================================================
-    // SYNCHRONISATION CLOUD & LOCALSTORAGE DE SECOURS
+    // SYNCHRONISATION CLOUD (SUPABASE) & LOCALSTORAGE DE SECOURS
     // ==========================================================================
     async function chargerDonneesCloud() {
       try {
-        const reponse = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`, {
-          headers: { 'X-Master-Key': JSONBIN_API_KEY }
-        });
-        if (!reponse.ok) throw new Error("Erreur réseau");
-        const resultat = await reponse.json();
-        return resultat.record;
+        // Récupérer depuis la table "app_data" (ou autre table unique de stockage global)
+        const { data, error } = await _supabase
+          .from('app_config')
+          .select('payload')
+          .eq('id', 1)
+          .single();
+
+        if (error || !data) throw error || new Error("Aucune donnée trouvée sur Supabase");
+        return data.payload;
       } catch (erreur) {
-        console.warn("Mode hors-ligne ou erreur cloud, utilisation du localStorage :", erreur);
+        console.warn("Mode hors-ligne ou tables non créées, utilisation du localStorage :", erreur);
         return {
           films: JSON.parse(localStorage.getItem('mesVideosNetflix')) || videosInitiales,
           playlists: JSON.parse(localStorage.getItem('mesPlaylistsMusic')) || [],
@@ -84,16 +88,14 @@
       localStorage.setItem('mesNotesApp', JSON.stringify(mesNotes));
 
       try {
-        await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Master-Key': JSONBIN_API_KEY
-          },
-          body: JSON.stringify(donneesGlobales)
-        });
+        // Enregistrement dans Supabase (Upsert sur l'ID 1 de la table app_config)
+        const { error } = await _supabase
+          .from('app_config')
+          .upsert({ id: 1, payload: donneesGlobales });
+
+        if (error) console.error("Erreur de synchronisation Supabase :", error);
       } catch (erreur) {
-        console.error("Impossible de synchroniser avec le cloud :", erreur);
+        console.error("Impossible de contacter le serveur cloud :", erreur);
       }
     }
 
@@ -1016,28 +1018,8 @@
     }
 
     // ==========================================================================
-    // FORMULAIRE D'AJOUT & EXTRACTION AUTOMATIQUE DE LA MINIATURE YOUTUBE
+    // FORMULAIRE D'AJOUT
     // ==========================================================================
-    const videoUrlInput = document.getElementById('videoUrl');
-    const videoAfficheInput = document.getElementById('videoAffiche');
-
-    const extraireIdYoutube = (url) => {
-      const match = url.match(/(?:v=|\/embed\/|\/1\/|\/v\/|https:\/\/youtu\.be\/|\/e\/|watch\?v=|&v=)([^#&?]*)/);
-      return (match && match[1].length === 11) ? match[1] : null;
-    };
-
-    if (videoUrlInput && videoAfficheInput) {
-      videoUrlInput.addEventListener('input', () => {
-        const youtubeId = extraireIdYoutube(videoUrlInput.value.trim());
-        if (youtubeId) {
-          const miniatureAuto = `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
-          if (!videoAfficheInput.value.trim() || videoAfficheInput.value.includes('img.youtube.com')) {
-            videoAfficheInput.value = miniatureAuto;
-          }
-        }
-      });
-    }
-
     if (btnOuvrirAjout) btnOuvrirAjout.onclick = () => { if (addVideoModal) addVideoModal.style.display = 'flex'; };
     if (closeAjoutBtn) closeAjoutBtn.onclick = () => { if (addVideoModal) addVideoModal.style.display = 'none'; };
 
@@ -1152,16 +1134,15 @@
         const authorInput      = document.getElementById('videoAuthor') ? document.getElementById('videoAuthor').value : '';
         const durationInput    = document.getElementById('videoDuration') ? (parseInt(document.getElementById('videoDuration').value) || 0) : 0;
         const descriptionInput = document.getElementById('videoDescription') ? document.getElementById('videoDescription').value : '';
-        const rawAfficheInput  = document.getElementById('videoAffiche') ? document.getElementById('videoAffiche').value : '';
-        const rawVideoUrlInput = videoUrlInput ? videoUrlInput.value : '';
+        const afficheInput     = document.getElementById('videoAffiche') ? document.getElementById('videoAffiche').value : '';
+        const videoUrlInput    = document.getElementById('videoUrl') ? document.getElementById('videoUrl').value : '';
         const fileUrlInput     = videoFileUrl ? videoFileUrl.value : '';
 
         let youtubeId = "";
-        if ((isYoutube || (isMusique && musicSourceType && musicSourceType.value === 'youtube')) && rawVideoUrlInput) {
-          youtubeId = extraireIdYoutube(rawVideoUrlInput);
+        if ((isYoutube || (isMusique && musicSourceType && musicSourceType.value === 'youtube')) && videoUrlInput) {
+          const match = videoUrlInput.match(/(?:v=|\/embed\/|\/1\/|\/v\/|https:\/\/youtu\.be\/|\/e\/|watch\?v=|&v=)([^#&?]*)/);
+          if (match && match[1].length === 11) youtubeId = match[1];
         }
-
-        const afficheInput = rawAfficheInput || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800');
 
         const nouveauContenu = {
           id: Date.now(),
@@ -1170,7 +1151,7 @@
           type: finalType,
           duree: durationInput,
           description: descriptionInput,
-          affiche: afficheInput,
+          affiche: afficheInput || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800'),
           fileUrl: fileUrlInput,
           youtubeId: youtubeId,
           dateSortie: new Date().getFullYear().toString()
@@ -1301,7 +1282,7 @@
     }
 
     // ==========================================================================
-    // INITIALISATION AU CHARGEMENT (CHARGEMENT DEPUIS LE CLOUD)
+    // INITIALISATION AU CHARGEMENT (CHARGEMENT DEPUIS SUPABASE)
     // ==========================================================================
     document.addEventListener('DOMContentLoaded', async () => {
       const donnees = await chargerDonneesCloud();
