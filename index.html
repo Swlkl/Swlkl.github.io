@@ -66,17 +66,35 @@
         <!-- Modal de Modification du Profil -->
         <div class="modal" id="profileModal" style="display:none;">
           <div class="modal-content" style="max-width: 400px;">
-            <h3>Modifier mon profil</h3>
+            <div class="profile-header-preview" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+              <img id="previewAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200" alt="Photo de profil" class="avatar-preview" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
+              <span id="previewPseudo">Nom d'utilisateur</span>
+            </div>
+
+            <h3 style="margin-bottom: 16px;">Modifier mon profil</h3>
+            
             <form id="formUpdateProfile">
               <div class="form-group">
                 <label for="updatePseudo">Pseudo :</label>
                 <input type="text" id="updatePseudo" placeholder="Votre nouveau pseudo" required>
               </div>
+              
               <div class="form-group">
                 <label for="updateAvatarUrl">URL de la photo de profil :</label>
                 <input type="file" id="updateAvatarUrl" accept=".png, .jpeg, .jpg">
               </div>
-              <div class="modal-buttons">
+
+              <div class="form-group">
+                <label for="newPassword">Changer le mot de passe :</label>
+                <input type="password" id="newPassword" placeholder="Laisser vide pour ne pas changer">
+              </div>
+
+              <div class="form-group">
+                <label for="confirmPassword">Confirmer le mot de passe :</label>
+                <input type="password" id="confirmPassword" placeholder="Confirmer le nouveau mot de passe">
+              </div>
+
+              <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                 <button type="button" class="btn-secondary" id="closeProfileModal">Annuler</button>
                 <button type="submit" class="btn-primary">Enregistrer</button>
               </div>
