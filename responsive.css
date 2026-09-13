@@ -60,16 +60,17 @@
 
   .details-panel-container, .modal, .player-modal{
     position: fixed;
-    top: 45%;
+    top: 0;
     left: 0;
     right: 0;
-    /* bottom: 0; */
+    bottom: 0;
     background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
-}
+    overflow-y: auto; /* Permet de scroller si la modale est plus grande que l'écran */
+    padding: 20px 0;   /* Évite que la modale soit collée tout en haut/bas */
   }
 
   .topbar {
