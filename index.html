@@ -7,7 +7,6 @@
   <link rel="icon" type="image/png" href="Favicon_Swifit_Développement.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="responsive.css">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
@@ -328,6 +327,32 @@
       </div>
     </div>
   </aside>
+
+  <!-- ÉCRAN DE CONNEXION / INSCRIPTION -->
+  <div class="auth-container" id="authContainer" style="display: none;">
+    <div class="auth-card">
+      <h2 class="auth-title" id="authTitle">Connexion</h2>
+      <form id="authForm">
+        <div class="form-group" id="authPseudoGroup" style="display: none;">
+          <label for="authPseudo">Pseudo :</label>
+          <input type="text" id="authPseudo" placeholder="Votre pseudo">
+        </div>
+        <div class="form-group">
+          <label for="authEmail">Email :</label>
+          <input type="email" id="authEmail" required placeholder="nom@exemple.com">
+        </div>
+        <div class="form-group">
+          <label for="authPassword">Mot de passe :</label>
+          <input type="password" id="authPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-play" id="authSubmitBtn" style="width: 100%; margin-top: 10px;">Se connecter</button>
+      </form>
+      <div class="auth-switch">
+        <span id="authSwitchText">Pas encore de compte ?</span>
+        <button type="button" id="authSwitchBtn">S'inscrire</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
