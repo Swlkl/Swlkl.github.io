@@ -2,7 +2,7 @@
     // CONFIGURATION CLOUD (SUPABASE)
     // Remplacez les valeurs ci-dessous par votre Project URL et votre clé Anon Key
     // ==========================================================================
-    const SUPABASE_URL = 'https://ymgegbltvlelkzvvwzxp.supabase.co/rest/v1/'; // ex: 'https://xyzcompany.supabase.co'
+    const SUPABASE_URL = 'https://ymgegbltvlelkzvvwzxp.supabase.co'; // ex: 'https://xyzcompany.supabase.co'
     const SUPABASE_ANON_KEY = 'sb_publishable_hp30VcLffFFesEyMv3EKog_STlhk0vA'; // ex: 'eyJhbGciOiJIUzI1Ni...'
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
