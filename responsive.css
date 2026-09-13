@@ -58,6 +58,10 @@
     width: 85%;
   }
 
+  .details-panel-container, .modal, .player-modal{
+    top: 45%;
+  }
+
   .topbar {
     position: fixed;
     top: 0;
