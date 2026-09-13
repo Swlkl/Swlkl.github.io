@@ -662,3 +662,127 @@ body.music-playing .main-content { margin-right: 340px; }
 .mobile-search-bar {
   visibility: hidden;
 }
+
+.user-account-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.user-account-btn {
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+  transition: ease 0.5s;
+}
+
+.user-account-btn:hover {
+  Transform: scale(1.1);
+  transition: ease 0.35s;
+}
+
+.user-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.user-pseudo-text {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Menu déroulant */
+.user-dropdown-menu {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  width: 240px;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.user-dropdown-menu.active {
+  display: flex;
+}
+
+.user-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+
+.dropdown-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.dropdown-user-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dropdown-pseudo-display {
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-email-display {
+  color: #aaa;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  width: 100%;
+}
+
+.user-dropdown-item {
+  background: transparent;
+  border: none;
+  color: #ddd;
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s, color 0.2s;
+}
+
+.user-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.user-dropdown-item.logout {
+  color: #e50914;
+}
+
+.user-dropdown-item.logout:hover {
+  background: rgba(229, 9, 20, 0.15);
+}
