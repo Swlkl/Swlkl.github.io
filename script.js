@@ -1,3 +1,5 @@
+import * as Y from 'https://unpkg.com/yjs@13/dist/yjs.mjs';
+import { WebsocketProvider } from 'https://unpkg.com/y-websocket@1.5.0/dist/y-websocket.js';
 // ==========================================================================
 // CONFIGURATION CLOUD (SUPABASE)
 // Remplacez les valeurs ci-dessous par votre Project URL et votre clé Anon Key
