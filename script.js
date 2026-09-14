@@ -1232,10 +1232,26 @@ function updateAvailableUsersUI(presenceState) {
   });
 }
 
-window.inviterUtilisateur = function(userId, userName) {
-  alert(`Invitation envoyée à ${userName} ! Il/Elle peut maintenant modifier cette note.`);
-  if (typeof ajouterAccesNoteEnBdd === 'function' && noteEnCoursId) {
-    ajouterAccesNoteEnBdd(noteEnCoursId, userId);
+window.inviterUtilisateur = async function(userId, userName) {
+  if (!noteEnCoursId) {
+    alert("Veuillez d'abord enregistrer ou ouvrir un document avant d'inviter quelqu'un.");
+    return;
+  }
+
+  try {
+    const { error } = await _supabase
+      .from('note_shares')
+      .upsert(
+        { note_id: noteEnCoursId, user_id: userId },
+        { onConflict: 'note_id, user_id' }
+      );
+
+    if (error) throw error;
+
+    alert(`Accès accordé à ${userName} avec succès !`);
+  } catch (err) {
+    console.error("Erreur lors du partage de la note :", err);
+    alert(`Invitation envoyée à ${userName}, mais l'enregistrement en base a échoué : ${err.message}`);
   }
 };
 
@@ -1644,7 +1660,7 @@ if (authForm) {
       if (error) {
         alert("Erreur de connexion : " + error.message);
       } else {
-        if (authContainer) authContainer.style.display = 'none';
+        if (authContainer) authContainer.style.display = 'flex';
         verifierSessionEtChargerApp();
       }
     }
