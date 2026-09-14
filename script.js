@@ -6,6 +6,10 @@ const SUPABASE_URL = 'https://ymgegbltvlelkzvvwzxp.supabase.co'; // ex: 'https:/
 const SUPABASE_ANON_KEY = 'sb_publishable_hp30VcLffFFesEyMv3EKog_STlhk0vA'; // ex: 'eyJhbGciOiJIUzI1Ni...'
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Exposition globale pour les modules externes (ex: Yjs / Presence)
+window.supabaseClient = _supabase;
+let currentUser = { id: "", name: "Utilisateur" };
+
 const videosInitiales = [
   {
     id: 1,
@@ -1165,7 +1169,7 @@ if (formAjoutVideo) {
 }
 
 // ==========================================================================
-// BLOC-NOTES
+// BLOC-NOTES & COLLABORATION TEMPS RÉEL (SUPABASE PRESENCE & YJS)
 // ==========================================================================
 let noteEnCoursId = null;
 
@@ -1179,6 +1183,121 @@ const noteTitleInput     = document.getElementById('noteTitleInput');
 const noteContentInput   = document.getElementById('noteContentInput');
 const btnSaveNote        = document.getElementById('btnSaveNote');
 const btnBackToList      = document.getElementById('btnBackToList');
+
+// --- 1. GESTION DES UTILISATEURS DISPONIBLES SUR LE SITE (SUPABASE PRESENCE) ---
+async function initPresenceSystem(noteId) {
+  if (!window.supabaseClient) return;
+
+  const roomChannel = window.supabaseClient.channel(`room_${noteId || 'global'}`, {
+    config: {
+      presence: {
+        key: currentUser.id,
+      },
+    },
+  });
+
+  roomChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = roomChannel.presenceState();
+      updateAvailableUsersUI(state);
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await roomChannel.track({
+          name: currentUser.name || 'Utilisateur',
+          online_at: new Date().toISOString(),
+        });
+      }
+    });
+}
+
+function updateAvailableUsersUI(presenceState) {
+  const container = document.getElementById('availableUsersList');
+  if (!container) return;
+  
+  container.innerHTML = '';
+
+  Object.keys(presenceState).forEach(userId => {
+    const userInfo = presenceState[userId][0];
+    
+    if (userId === currentUser.id) return;
+
+    const li = document.createElement('li');
+    li.style.cssText = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9rem;";
+    li.innerHTML = `
+      <span>🟢 ${userInfo.name}</span>
+      <button class="btn-secondary" style="padding: 2px 8px; font-size: 0.8rem;" onclick="inviterUtilisateur('${userId}', '${userInfo.name}')">Ajouter</button>
+    `;
+    container.appendChild(li);
+  });
+}
+
+window.inviterUtilisateur = function(userId, userName) {
+  alert(`Invitation envoyée à ${userName} ! Il/Elle peut maintenant modifier cette note.`);
+  if (typeof ajouterAccesNoteEnBdd === 'function' && noteEnCoursId) {
+    ajouterAccesNoteEnBdd(noteEnCoursId, userId);
+  }
+};
+
+
+// --- 2. SYNCHRONISATION EN TEMPS RÉEL DU TEXTE (YJS) ---
+let ydoc = null;
+let provider = null;
+
+function ouvrirNoteEnTempsReel(noteId) {
+  if (provider) provider.destroy();
+  if (ydoc) ydoc.destroy();
+
+  ydoc = new Y.Doc();
+  
+  provider = new WebsocketProvider(
+    'wss://demos.yjs.dev/ws', 
+    `mon-app-film-note-${noteId}`, 
+    ydoc
+  );
+
+  const yText = ydoc.getText('codetext');
+  const yTitle = ydoc.getText('codetitle');
+
+  const titleInput = document.getElementById('noteTitleInput');
+  const contentInput = document.getElementById('noteContentInput');
+
+  if (contentInput) {
+    yText.observe(event => {
+      if (contentInput.value !== yText.toString()) {
+        contentInput.value = yText.toString();
+      }
+    });
+
+    contentInput.addEventListener('input', () => {
+      if (contentInput.value !== yText.toString()) {
+        ydoc.transact(() => {
+          yText.delete(0, yText.length);
+          yText.insert(0, contentInput.value);
+        });
+      }
+    });
+  }
+
+  if (titleInput) {
+    yTitle.observe(event => {
+      if (titleInput.value !== yTitle.toString()) {
+        titleInput.value = yTitle.toString();
+      }
+    });
+
+    titleInput.addEventListener('input', () => {
+      if (titleInput.value !== yTitle.toString()) {
+        ydoc.transact(() => {
+          yTitle.delete(0, yTitle.length);
+          yTitle.insert(0, titleInput.value);
+        });
+      }
+    });
+  }
+
+  initPresenceSystem(noteId);
+}
 
 if (btnNotes) {
   btnNotes.addEventListener('click', () => {
@@ -1219,22 +1338,18 @@ function afficherNotes() {
       </div>
     `;
 
-    // Ouvrir l'éditeur au clic sur le contenu
     item.querySelector('.note-item-content').addEventListener('click', () => ouvrirEditeurNote(note));
     
-    // Télécharger en .txt
     item.querySelector('.btn-download-txt').addEventListener('click', (e) => {
       e.stopPropagation();
       telechargerFichier(note, 'txt');
     });
 
-    // Télécharger en .docx
     item.querySelector('.btn-download-docx').addEventListener('click', (e) => {
       e.stopPropagation();
       telechargerFichier(note, 'docx');
     });
 
-    // Supprimer avec pop-up de confirmation
     item.querySelector('.btn-delete-note').addEventListener('click', (e) => {
       e.stopPropagation();
       const confirmation = confirm(`Voulez-vous vraiment supprimer le bloc-notes "${note.titre || 'Sans titre'}" ?`);
@@ -1247,7 +1362,6 @@ function afficherNotes() {
   });
 }
 
-// Fonction utilitaire pour le téléchargement
 function telechargerFichier(note, format) {
   const titreFichier = (note.titre || 'note').replace(/[^a-z0-9]/gi, '_').toLowerCase();
   let contenuTexte = `Titre : ${note.titre || 'Sans titre'}\nDate : ${note.date || ''}\n\n${note.contenu || ''}`;
@@ -1260,7 +1374,6 @@ function telechargerFichier(note, format) {
     lien.click();
     URL.revokeObjectURL(lien.href);
   } else if (format === 'docx') {
-    // Création d'un format Word compatible (HTML encapsulé en .doc/.docx)
     const contenuHtml = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head><meta charset='utf-8'><title>${note.titre}</title></head>
@@ -1287,16 +1400,23 @@ function ouvrirEditeurNote(note = null) {
     noteEnCoursId = note.id;
     if (noteTitleInput) noteTitleInput.value = note.titre;
     if (noteContentInput) noteContentInput.value = note.contenu;
+    
+    // Lancement de la synchro Yjs et de la présence pour cette note
+    ouvrirNoteEnTempsReel(note.id);
   } else {
-    noteEnCoursId = null;
+    noteEnCoursId = Date.now(); // Attribuer un ID temporaire unique pour la synchro
     if (noteTitleInput) noteTitleInput.value = '';
     if (noteContentInput) noteContentInput.value = '';
+    
+    ouvrirNoteEnTempsReel(noteEnCoursId);
   }
   noteEditor.classList.add('active');
   if (noteTitleInput) noteTitleInput.focus();
 }
 
 function fermerEditeurNote() {
+  if (provider) { provider.destroy(); provider = null; }
+  if (ydoc) { ydoc.destroy(); ydoc = null; }
   if (noteEditor) noteEditor.classList.remove('active');
   noteEnCoursId = null;
 }
@@ -1316,15 +1436,13 @@ if (btnSaveNote) {
     const contenu = noteContentInput ? noteContentInput.value.trim() : '';
     if (!titre && !contenu) { fermerEditeurNote(); return; }
 
-    if (noteEnCoursId) {
-      const idx = mesNotes.findIndex(n => n.id === noteEnCoursId);
-      if (idx !== -1) {
-        mesNotes[idx].titre = titre || 'Document sans titre';
-        mesNotes[idx].contenu = contenu;
-      }
+    const existingNoteIndex = mesNotes.findIndex(n => n.id === noteEnCoursId);
+    if (existingNoteIndex !== -1) {
+      mesNotes[existingNoteIndex].titre = titre || 'Document sans titre';
+      mesNotes[existingNoteIndex].contenu = contenu;
     } else {
       mesNotes.unshift({
-        id: Date.now(),
+        id: noteEnCoursId || Date.now(),
         titre: titre || 'Document sans titre',
         contenu: contenu,
         date: new Date().toLocaleDateString()
@@ -1357,7 +1475,6 @@ const btnOpenProfileModal = document.getElementById('btnOpenProfileModal');
 const formUpdateProfile = document.getElementById('formUpdateProfile');
 const BtnUserLogout = document.getElementById('BtnUserLogout');
 
-// Ouvrir / Fermer le menu déroulant du compte
 if (userAccountBtn && userDropdownMenu) {
   userAccountBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1365,14 +1482,12 @@ if (userAccountBtn && userDropdownMenu) {
   });
 }
 
-// Fermer le menu si on clique ailleurs sur la page
 document.addEventListener('click', (e) => {
   if (userDropdownMenu && !userDropdownMenu.contains(e.target) && userAccountBtn && !userAccountBtn.contains(e.target)) {
     userDropdownMenu.classList.remove('active');
   }
 });
 
-// Charger les informations de l'utilisateur connecté dans l'UI
 async function chargerInfosUtilisateur() {
   const { data: { session } } = await _supabase.auth.getSession();
   if (!session) return;
@@ -1382,7 +1497,12 @@ async function chargerInfosUtilisateur() {
   const pseudo = metadata.pseudo || user.email.split('@')[0];
   const avatar = metadata.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200';
 
-  // Mise à jour des éléments visuels
+  // Mise à jour de l'objet global currentUser pour Supabase Presence
+  currentUser = {
+    id: user.id,
+    name: pseudo
+  };
+
   const userPseudoLabel = document.getElementById('userPseudoLabel');
   const userAvatarThumb = document.getElementById('userAvatarThumb');
   const userAvatarMenu = document.getElementById('userAvatarMenu');
@@ -1396,21 +1516,18 @@ async function chargerInfosUtilisateur() {
   if (dropdownEmail) dropdownEmail.textContent = user.email;
 }
 
-// Ouvrir la modale de modification de profil
 if (btnOpenProfileModal) {
   btnOpenProfileModal.addEventListener('click', async () => {
     if (userDropdownMenu) userDropdownMenu.classList.remove('active');
     if (profileModal) profileModal.style.display = 'flex';
     
-    // Pré-remplir les champs avec les données actuelles
     const { data: { session } } = await _supabase.auth.getSession();
     if (session && session.user.user_metadata) {
       const meta = session.user.user_metadata;
       const updatePseudo = document.getElementById('updatePseudo');
-      const avatarPreviewImg = document.getElementById('avatarPreview'); // <-- Ajout
+      const avatarPreviewImg = document.getElementById('avatarPreview');
       
       if (updatePseudo) updatePseudo.value = meta.pseudo || '';
-      // Affiche l'avatar actuel ou une image par défaut au lieu du lien brisé <-- Ajout
       if (avatarPreviewImg) avatarPreviewImg.src = meta.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200'; 
     }
   });
@@ -1422,7 +1539,6 @@ if (closeProfileModal) {
   });
 }
 
-// Enregistrer les modifications du profil dans Supabase Auth et Storage
 if (formUpdateProfile) {
   formUpdateProfile.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1431,7 +1547,6 @@ if (formUpdateProfile) {
     let nouvelleAvatarUrl = '';
 
     try {
-      // 1. Upload de la nouvelle image s'il y en a une
       if (avatarInput && avatarInput.files && avatarInput.files.length > 0) {
         const file = avatarInput.files[0];
         const fileExt = file.name.split('.').pop();
@@ -1451,7 +1566,6 @@ if (formUpdateProfile) {
         nouvelleAvatarUrl = urlData.publicUrl;
       }
 
-      // 2. Si aucune nouvelle image n'est envoyée, conserver l'ancienne
       if (!nouvelleAvatarUrl) {
         const { data: { session } } = await _supabase.auth.getSession();
         if (session && session.user.user_metadata) {
@@ -1459,7 +1573,6 @@ if (formUpdateProfile) {
         }
       }
 
-      // 3. Mise à jour des métadonnées utilisateur
       const { error: updateError } = await _supabase.auth.updateUser({
         data: {
           pseudo: nouveauPseudo,
@@ -1493,7 +1606,6 @@ const authSwitchText = document.getElementById('authSwitchText');
 
 let isSignUpMode = false;
 
-// Basculer entre Connexion et Inscription
 if (authSwitchBtn && authSwitchText) {
   authSwitchBtn.addEventListener('click', () => {
     isSignUpMode = !isSignUpMode;
@@ -1511,7 +1623,6 @@ if (authSwitchBtn && authSwitchText) {
   });
 }
 
-// Soumission du formulaire d'authentification
 if (authForm) {
   authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1519,7 +1630,6 @@ if (authForm) {
     const password = authPassword.value.trim();
 
     if (isSignUpMode) {
-      // Inscription
       const { data, error } = await _supabase.auth.signUp({ email, password });
       if (error) {
         alert("Erreur d'inscription : " + error.message);
@@ -1530,12 +1640,10 @@ if (authForm) {
         authSubmitBtn.textContent = "Se connecter";
       }
     } else {
-      // Connexion
       const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
       if (error) {
         alert("Erreur de connexion : " + error.message);
       } else {
-        // Connexion réussie, on masque le formulaire et on charge l'app
         if (authContainer) authContainer.style.display = 'none';
         verifierSessionEtChargerApp();
       }
@@ -1543,17 +1651,14 @@ if (authForm) {
   });
 }
 
-// Fonction pour vérifier si l'utilisateur est connecté au démarrage ou après déconnexion
 async function verifierSessionEtChargerApp() {
   const { data: { session } } = await _supabase.auth.getSession();
 
   if (!session) {
-    // Si PAS connecté : on affiche le formulaire de connexion et on masque le contenu
     if (authContainer) authContainer.style.display = 'flex';
   } else {
-    // Si connecté : on masque le formulaire et on charge les données
     if (authContainer) authContainer.style.display = 'none';
-    chargerInfosUtilisateur();
+    await chargerInfosUtilisateur();
     
     const donnees = await chargerDonneesCloud();
     listeFilms    = donnees.films || videosInitiales;
@@ -1567,13 +1672,10 @@ async function verifierSessionEtChargerApp() {
   }
 }
 
-// Gérer la déconnexion
 if (BtnUserLogout) {
   BtnUserLogout.addEventListener('click', async () => {
     if (userDropdownMenu) userDropdownMenu.classList.remove('active');
     await _supabase.auth.signOut();
-    
-    // Dès la déconnexion, on réaffiche instantanément l'écran de connexion
     if (authContainer) authContainer.style.display = 'flex';
   });
 }
@@ -1589,13 +1691,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 // PREVISUALISATION DE L'AVATAR
 // ==========================================================================
 const avatarUploadInput = document.getElementById('updateAvatarUrl');
-const avatarPreviewImg = document.getElementById('avatarPreview'); // <-- ID de l'image d'aperçu
+const avatarPreviewImg = document.getElementById('avatarPreview');
 
 if (avatarUploadInput) {
   avatarUploadInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file && avatarPreviewImg) {
-      // Remplace la source de l'image par le fichier local sélectionné
       avatarPreviewImg.src = URL.createObjectURL(file);
     }
   });
