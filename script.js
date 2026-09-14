@@ -1212,15 +1212,73 @@ function afficherNotes() {
         <div class="note-item-title">${note.titre || 'Document sans titre'}</div>
         <div class="note-item-snippet">${note.contenu || 'Document vide...'}</div>
       </div>
-      <button class="btn-delete-note">Supprimer</button>
+      <div class="note-item-actions">
+        <button class="btn-action-note btn-download-txt" title="Télécharger en .txt">.TXT</button>
+        <button class="btn-action-note btn-download-docx" title="Télécharger en .docx">.DOCX</button>
+        <button class="btn-action-note btn-delete-note" title="Supprimer">Supprimer</button>
+      </div>
     `;
+
+    // Ouvrir l'éditeur au clic sur le contenu
     item.querySelector('.note-item-content').addEventListener('click', () => ouvrirEditeurNote(note));
+    
+    // Télécharger en .txt
+    item.querySelector('.btn-download-txt').addEventListener('click', (e) => {
+      e.stopPropagation();
+      telechargerFichier(note, 'txt');
+    });
+
+    // Télécharger en .docx
+    item.querySelector('.btn-download-docx').addEventListener('click', (e) => {
+      e.stopPropagation();
+      telechargerFichier(note, 'docx');
+    });
+
+    // Supprimer avec pop-up de confirmation
     item.querySelector('.btn-delete-note').addEventListener('click', (e) => {
       e.stopPropagation();
-      supprimerNote(note.id);
+      const confirmation = confirm(`Voulez-vous vraiment supprimer le bloc-notes "${note.titre || 'Sans titre'}" ?`);
+      if (confirmation) {
+        supprimerNote(note.id);
+      }
     });
+
     notesListContainer.appendChild(item);
   });
+}
+
+// Fonction utilitaire pour le téléchargement
+function telechargerFichier(note, format) {
+  const titreFichier = (note.titre || 'note').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  let contenuTexte = `Titre : ${note.titre || 'Sans titre'}\nDate : ${note.date || ''}\n\n${note.contenu || ''}`;
+  
+  if (format === 'txt') {
+    const blob = new Blob([contenuTexte], { type: 'text/plain;charset=utf-8' });
+    const lien = document.createElement('a');
+    lien.href = URL.createObjectURL(blob);
+    lien.download = `${titreFichier}.txt`;
+    lien.click();
+    URL.revokeObjectURL(lien.href);
+  } else if (format === 'docx') {
+    // Création d'un format Word compatible (HTML encapsulé en .doc/.docx)
+    const contenuHtml = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head><meta charset='utf-8'><title>${note.titre}</title></head>
+      <body>
+        <h2>${note.titre || 'Sans titre'}</h2>
+        <p><em>Date : ${note.date || ''}</em></p>
+        <hr/>
+        <p>${(note.contenu || '').replace(/\n/g, '<br>')}</p>
+      </body>
+      </html>
+    `;
+    const blob = new Blob(['\ufeff' + contenuHtml], { type: 'application/msword' });
+    const lien = document.createElement('a');
+    lien.href = URL.createObjectURL(blob);
+    lien.download = `${titreFichier}.docx`;
+    lien.click();
+    URL.revokeObjectURL(lien.href);
+  }
 }
 
 function ouvrirEditeurNote(note = null) {
