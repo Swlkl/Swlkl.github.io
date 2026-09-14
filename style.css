@@ -606,6 +606,22 @@ body.music-playing .main-content { margin-right: 340px; }
   opacity: 1;
 }
 
+.btn-download-txt, .btn-download-docx {
+  padding: 0 20px;
+  background-color: rgba(109, 109, 110, 0.7);
+  border-radius: 20px;
+  transition: ease 0.25s;
+}
+
+.btn-download-txt:hover, .btn-download-docx:hover {
+  transform: scale(1.1);
+  padding: 5px 20px;
+  background-color: rgba(54, 54, 54, 0.7);
+  transition: ease 0.3s;
+  border: solid 2px #fff;
+  color: #fff;
+}
+
 /* ÉDITEUR DE NOTE OVERLAY */
 .note-editor {
   position: absolute;
