@@ -340,8 +340,8 @@
       <textarea id="noteContentInput" placeholder="Écrivez votre note ici..."></textarea>
       <div class="note-editor-actions">
         <button class="btn-secondary" id="btnBackToList">Annuler</button>
-        <button class="btn-play" id="btnSaveNote">Enregistrer</button>
         <button class="btn-secondary" id="btnShareNote">Partager</button>
+        <button class="btn-play" id="btnSaveNote">Enregistrer</button>
       </div>
     </div>
   </aside>
@@ -372,8 +372,14 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/yjs@13/dist/yjs.js"></script>
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Yjs et WebSocket Provider nécessaires pour le bloc-notes collaboratif -->
+  <script src="https://unpkg.com/yjs@13/dist/yjs.js"></script>
+  <script src="https://unpkg.com/y-websocket@1.5.0/dist/y-websocket.js"></script>
+
+  <!-- Votre script principal -->
   <script src="script.js"></script>
 </body>
 </html>
