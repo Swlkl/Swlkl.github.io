@@ -1,9 +1,8 @@
 // ==========================================================================
 // CONFIGURATION CLOUD (SUPABASE)
-// Remplacez les valeurs ci-dessous par votre Project URL et votre clé Anon Key
 // ==========================================================================
-const SUPABASE_URL = 'https://ymgegbltvlelkzvvwzxp.supabase.co'; // ex: 'https://xyzcompany.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_hp30VcLffFFesEyMv3EKog_STlhk0vA'; // ex: 'eyJhbGciOiJIUzI1Ni...'
+const SUPABASE_URL = 'https://ymgegbltvlelkzvvwzxp.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_hp30VcLffFFesEyMv3EKog_STlhk0vA';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const videosInitiales = [
@@ -32,6 +31,8 @@ let indexMusiqueActive = -1;
 let heroTimer = null;
 let heroItemsSelection = [];
 let heroCurrentIndex = 0;
+
+let noteToDeleteId = null; // ID de la note en attente de suppression
 
 let typesYoutube = ['video', 'jeux-video', 'culture', 'programmation'];
 
@@ -154,6 +155,11 @@ const groupSubCategory = document.getElementById('groupSubCategory');
 const btnSystemPicker  = document.getElementById('btnSystemPicker');
 const systemFilePicker = document.getElementById('systemFilePicker');
 const videoFileUrl     = document.getElementById('videoFileUrl');
+
+// Modale de confirmation de suppression (si présente dans le DOM)
+const confirmModal = document.getElementById('confirm-modal');
+const btnModalCancel = document.getElementById('btn-modal-cancel');
+const btnModalConfirm = document.getElementById('btn-modal-confirm');
 
 const notifContainer = document.querySelector('.topbar');
 const notifDropdown = document.createElement('div');
@@ -1165,7 +1171,7 @@ if (formAjoutVideo) {
 }
 
 // ==========================================================================
-// BLOC-NOTES
+// BLOC-NOTES ET FONCTIONNALITÉS D'EXPORTATION & CONFIRMATION
 // ==========================================================================
 let noteEnCoursId = null;
 
@@ -1209,16 +1215,30 @@ function afficherNotes() {
     item.className = 'note-item';
     item.innerHTML = `
       <div class="note-item-content">
-        <div class="note-item-title">${note.titre || 'Document sans titre'}</div>
-        <div class="note-item-snippet">${note.contenu || 'Document vide...'}</div>
+        <div class="note-item-title">${escapeHtml(note.titre || 'Document sans titre')}</div>
+        <div class="note-item-snippet">${escapeHtml(note.contenu || 'Document vide...')}</div>
       </div>
-      <button class="btn-delete-note">Supprimer</button>
+      <div class="note-actions">
+        <button class="btn btn-docx btn-export-docx">.docx</button>
+        <button class="btn btn-txt btn-export-txt">.txt</button>
+        <button class="btn-delete-note">Supprimer</button>
+      </div>
     `;
+
     item.querySelector('.note-item-content').addEventListener('click', () => ouvrirEditeurNote(note));
+    item.querySelector('.btn-export-docx').addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportToDocx(note.titre || 'Note', note.contenu || '');
+    });
+    item.querySelector('.btn-export-txt').addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportToTxt(note.titre || 'Note', note.contenu || '');
+    });
     item.querySelector('.btn-delete-note').addEventListener('click', (e) => {
       e.stopPropagation();
-      supprimerNote(note.id);
+      openDeleteModal(note.id);
     });
+
     notesListContainer.appendChild(item);
   });
 }
@@ -1243,11 +1263,33 @@ function fermerEditeurNote() {
   noteEnCoursId = null;
 }
 
-function supprimerNote(id) {
-  mesNotes = mesNotes.filter(n => n.id !== id);
+// --- MODAL DE CONFIRMATION ET SUPPRESSION ---
+function openDeleteModal(id) {
+  noteToDeleteId = id;
+  if (confirmModal) {
+    confirmModal.style.display = 'flex';
+  } else {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cette note ?")) {
+      executeDeleteNote();
+    }
+  }
+}
+
+function closeModal() {
+  noteToDeleteId = null;
+  if (confirmModal) confirmModal.style.display = 'none';
+}
+
+function executeDeleteNote() {
+  if (!noteToDeleteId) return;
+  mesNotes = mesNotes.filter(n => n.id !== noteToDeleteId);
   sauvegarderDonneesCloud();
+  closeModal();
   afficherNotes();
 }
+
+if (btnModalCancel) btnModalCancel.addEventListener('click', closeModal);
+if (btnModalConfirm) btnModalConfirm.addEventListener('click', executeDeleteNote);
 
 if (btnNewNote) btnNewNote.addEventListener('click', () => ouvrirEditeurNote());
 if (btnBackToList) btnBackToList.addEventListener('click', fermerEditeurNote);
@@ -1276,6 +1318,67 @@ if (btnSaveNote) {
     fermerEditeurNote();
     afficherNotes();
   });
+}
+
+// --- EXPORTATION DES NOTES (.TXT & .DOCX) ---
+function exportToTxt(title, content) {
+  const textBlob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const filename = `${sanitizeFilename(title)}.txt`;
+  downloadFile(textBlob, filename);
+}
+
+function exportToDocx(title, content) {
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${escapeHtml(title)}</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.5; }
+        h1 { color: #2563eb; font-size: 20pt; }
+        pre { background-color: #f1f5f9; padding: 10px; font-family: monospace; font-size: 10pt; }
+      </style>
+    </head>
+    <body>
+      <h1>${escapeHtml(title)}</h1>
+      <pre>${escapeHtml(content)}</pre>
+    </body>
+    </html>
+  `;
+
+  if (window.htmlDocx) {
+    const converted = window.htmlDocx.asBlob(htmlContent);
+    const filename = `${sanitizeFilename(title)}.docx`;
+    downloadFile(converted, filename);
+  } else {
+    alert("La bibliothèque d'exportation Word n'est pas encore disponible.");
+  }
+}
+
+function downloadFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function sanitizeFilename(name) {
+  return name.replace(/[^a-z0-9_\-]/gi, '_').toLowerCase();
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 // Effet scroll topbar mobile
@@ -1349,10 +1452,9 @@ if (btnOpenProfileModal) {
     if (session && session.user.user_metadata) {
       const meta = session.user.user_metadata;
       const updatePseudo = document.getElementById('updatePseudo');
-      const avatarPreviewImg = document.getElementById('avatarPreview'); // <-- Ajout
+      const avatarPreviewImg = document.getElementById('avatarPreview');
       
       if (updatePseudo) updatePseudo.value = meta.pseudo || '';
-      // Affiche l'avatar actuel ou une image par défaut au lieu du lien brisé <-- Ajout
       if (avatarPreviewImg) avatarPreviewImg.src = meta.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200'; 
     }
   });
@@ -1477,7 +1579,6 @@ if (authForm) {
       if (error) {
         alert("Erreur de connexion : " + error.message);
       } else {
-        // Connexion réussie, on masque le formulaire et on charge l'app
         if (authContainer) authContainer.style.display = 'none';
         verifierSessionEtChargerApp();
       }
@@ -1490,10 +1591,8 @@ async function verifierSessionEtChargerApp() {
   const { data: { session } } = await _supabase.auth.getSession();
 
   if (!session) {
-    // Si PAS connecté : on affiche le formulaire de connexion et on masque le contenu
     if (authContainer) authContainer.style.display = 'flex';
   } else {
-    // Si connecté : on masque le formulaire et on charge les données
     if (authContainer) authContainer.style.display = 'none';
     chargerInfosUtilisateur();
     
@@ -1514,9 +1613,22 @@ if (BtnUserLogout) {
   BtnUserLogout.addEventListener('click', async () => {
     if (userDropdownMenu) userDropdownMenu.classList.remove('active');
     await _supabase.auth.signOut();
-    
-    // Dès la déconnexion, on réaffiche instantanément l'écran de connexion
     if (authContainer) authContainer.style.display = 'flex';
+  });
+}
+
+// ==========================================================================
+// PREVISUALISATION DE L'AVATAR
+// ==========================================================================
+const avatarUploadInput = document.getElementById('updateAvatarUrl');
+const avatarPreviewImg = document.getElementById('avatarPreview');
+
+if (avatarUploadInput) {
+  avatarUploadInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file && avatarPreviewImg) {
+      avatarPreviewImg.src = URL.createObjectURL(file);
+    }
   });
 }
 
@@ -1526,19 +1638,3 @@ if (BtnUserLogout) {
 document.addEventListener('DOMContentLoaded', async () => {
   verifierSessionEtChargerApp();
 });
-
-// ==========================================================================
-// PREVISUALISATION DE L'AVATAR
-// ==========================================================================
-const avatarUploadInput = document.getElementById('updateAvatarUrl');
-const avatarPreviewImg = document.getElementById('avatarPreview'); // <-- ID de l'image d'aperçu
-
-if (avatarUploadInput) {
-  avatarUploadInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file && avatarPreviewImg) {
-      // Remplace la source de l'image par le fichier local sélectionné
-      avatarPreviewImg.src = URL.createObjectURL(file);
-    }
-  });
-}
