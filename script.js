@@ -1616,24 +1616,25 @@ async function verifierSessionEtChargerApp() {
     
     const donnees = await chargerDonneesCloud();
     
-    // Si l'utilisateur a une sauvegarde, on la charge, sinon on initialise avec les valeurs par défaut
-    listeFilms    = donnees ? (donnees.films || []) : videosInitiales;
-    mesPlaylists  = donnees ? (donnees.playlists || []) : [];
-    maListe       = donnees ? (donnees.maListe || []) : [];
-    notifications = donnees ? (donnees.notifications || []) : [];
-    mesNotes      = donnees ? (donnees.notes || []) : [];
+    // Si des données existent dans le Cloud pour cet utilisateur
+    if (donnees) {
+      listeFilms    = donnees.films || [];
+      mesPlaylists  = donnees.playlists || [];
+      maListe       = donnees.maListe || [];
+      notifications = donnees.notifications || [];
+      mesNotes      = donnees.notes || [];
+    } else {
+      // Nouvel utilisateur sans sauvegarde cloud : on part de zéro (ou des vidéos initiales)
+      listeFilms    = [...videosInitiales];
+      mesPlaylists  = [];
+      maListe       = [];
+      notifications = [];
+      mesNotes      = [];
+    }
 
     mettreAJourNotificationsUI();
     genererCatalogue('accueil');
   }
-}
-// Gérer la déconnexion
-if (BtnUserLogout) {
-  BtnUserLogout.addEventListener('click', async () => {
-    if (userDropdownMenu) userDropdownMenu.classList.remove('active');
-    await _supabase.auth.signOut();
-    if (authContainer) authContainer.style.display = 'flex';
-  });
 }
 
 // ==========================================================================
