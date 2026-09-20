@@ -1623,16 +1623,19 @@ if (authForm) {
 // Fonction pour vérifier si l'utilisateur est connecté au démarrage ou après déconnexion
 async function verifierSessionEtChargerApp() {
   const { data: { session } } = await _supabase.auth.getSession();
+  const appContainer = document.getElementById('appContainer');
 
   if (!session) {
     if (authContainer) authContainer.style.display = 'flex';
+    if (appContainer) appContainer.style.display = 'none'; // S'assure que le contenu reste masqué
   } else {
     if (authContainer) authContainer.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'block'; // Rend le site accessible uniquement après validation
+    
     chargerInfosUtilisateur();
     
     const donnees = await chargerDonneesCloud();
     
-    // Si des données existent dans le Cloud pour cet utilisateur
     if (donnees) {
       listeFilms    = donnees.films || [];
       mesPlaylists  = donnees.playlists || [];
@@ -1640,7 +1643,6 @@ async function verifierSessionEtChargerApp() {
       notifications = donnees.notifications || [];
       mesNotes      = donnees.notes || [];
     } else {
-      // Nouvel utilisateur sans sauvegarde cloud : on part de zéro (ou des vidéos initiales)
       listeFilms    = [...videosInitiales];
       mesPlaylists  = [];
       maListe       = [];
