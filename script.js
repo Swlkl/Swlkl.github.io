@@ -51,16 +51,23 @@ let filtreTriActif = 'recent';
 // ==========================================================================
 async function chargerDonneesCloud() {
   try {
-    const { data, error } = await _supabase
-      .from('app_config')
-      .select('payload')
-      .eq('id', 1)
-      .single();
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) throw new Error("Aucun utilisateur connecté");
 
-    if (error || !data) throw error || new Error("Aucune donnée trouvée sur Supabase");
+    const userId = session.user.id;
+
+    const { data, error } = await _supabase
+      .from('app_config') // <-- Remplacé 'user_data' par 'app_config'
+      .select('payload')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null; 
+
     return data.payload;
   } catch (erreur) {
-    console.warn("Mode hors-ligne ou tables non créées, utilisation du localStorage :", erreur);
+    console.warn("Erreur ou mode hors-ligne :", erreur);
     return {
       films: JSON.parse(localStorage.getItem('mesVideosNetflix')) || videosInitiales,
       playlists: JSON.parse(localStorage.getItem('mesPlaylistsMusic')) || [],
@@ -87,9 +94,20 @@ async function sauvegarderDonneesCloud() {
   localStorage.setItem('mesNotesApp', JSON.stringify(mesNotes));
 
   try {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (!session) return;
+
+    const userId = session.user.id;
+
     const { error } = await _supabase
-      .from('app_config')
-      .upsert({ id: 1, payload: donneesGlobales });
+      .from('app_config') // <-- Remplacé 'user_data' par 'app_config'
+      .upsert(
+        { 
+          user_id: userId, 
+          payload: donneesGlobales 
+        },
+        { onConflict: 'user_id' }
+      );
 
     if (error) console.error("Erreur de synchronisation Supabase :", error);
   } catch (erreur) {
@@ -1597,17 +1615,18 @@ async function verifierSessionEtChargerApp() {
     chargerInfosUtilisateur();
     
     const donnees = await chargerDonneesCloud();
-    listeFilms    = donnees.films || videosInitiales;
-    mesPlaylists  = donnees.playlists || [];
-    maListe       = donnees.maListe || [];
-    notifications = donnees.notifications || [];
-    mesNotes      = donnees.notes || [];
+    
+    // Si l'utilisateur a une sauvegarde, on la charge, sinon on initialise avec les valeurs par défaut
+    listeFilms    = donnees ? (donnees.films || []) : videosInitiales;
+    mesPlaylists  = donnees ? (donnees.playlists || []) : [];
+    maListe       = donnees ? (donnees.maListe || []) : [];
+    notifications = donnees ? (donnees.notifications || []) : [];
+    mesNotes      = donnees ? (donnees.notes || []) : [];
 
     mettreAJourNotificationsUI();
     genererCatalogue('accueil');
   }
 }
-
 // Gérer la déconnexion
 if (BtnUserLogout) {
   BtnUserLogout.addEventListener('click', async () => {
