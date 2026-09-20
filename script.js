@@ -1420,6 +1420,22 @@ const btnOpenProfileModal = document.getElementById('btnOpenProfileModal');
 const formUpdateProfile = document.getElementById('formUpdateProfile');
 const BtnUserLogout = document.getElementById('BtnUserLogout');
 
+// Écouteur pour la déconnexion
+if (BtnUserLogout) {
+  BtnUserLogout.addEventListener('click', async () => {
+    try {
+      const { error } = await _supabase.auth.signOut();
+      if (error) throw error;
+
+      localStorage.clear();
+      window.location.reload();
+    } catch (err) {
+      console.error("Erreur de déconnexion :", err);
+      alert("Impossible de se déconnecter : " + err.message);
+    }
+  });
+}
+
 // Ouvrir / Fermer le menu déroulant du compte
 if (userAccountBtn && userDropdownMenu) {
   userAccountBtn.addEventListener('click', (e) => {
