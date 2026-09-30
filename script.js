@@ -1279,6 +1279,7 @@ function ouvrirEditeurNote(note = null) {
 function fermerEditeurNote() {
   if (noteEditor) noteEditor.classList.remove('active');
   if (typeof fermerSelecteurTableau === 'function') fermerSelecteurTableau();
+  if (typeof fermerMenusNote === 'function') fermerMenusNote();
   noteEnCoursId = null;
 }
 
@@ -1317,6 +1318,21 @@ function htmlVersTexte(html, avecGrille = false) {
       donnees.forEach(l => { sortie.push(ligneTexte(l)); sortie.push(separateur); });
       return '\n' + sortie.join('\n') + '\n';
     }
+    if (n.tagName === 'UL' || n.tagName === 'OL') {
+      const ordonnee = n.tagName === 'OL';
+      const coche = n.classList.contains('checklist');
+      let i = 0;
+      const lignes = [];
+      Array.from(n.children).forEach(li => {
+        if (li.tagName !== 'LI') return;
+        i++;
+        const marque = coche ? (li.classList.contains('checked') ? '[x] ' : '[ ] ')
+                             : (ordonnee ? `${i}. ` : '- ');
+        const interne = Array.from(li.childNodes).map(parcourir).join('').trim();
+        lignes.push(interne.split('\n').map((l, k) => (k === 0 ? marque : '  ') + l).join('\n'));
+      });
+      return '\n' + lignes.join('\n') + '\n';
+    }
     const contenu = Array.from(n.childNodes).map(parcourir).join('');
     return (n.tagName === 'DIV' || n.tagName === 'P') ? contenu + '\n' : contenu;
   };
@@ -1350,6 +1366,7 @@ document.addEventListener('selectionchange', () => {
   if (noteContentInput && sel.rangeCount && noteContentInput.contains(sel.anchorNode)) {
     selectionNote = sel.getRangeAt(0).cloneRange();
     majOutilsTableau();
+    majEtatsOutils();
   }
 });
 
@@ -1393,7 +1410,7 @@ function fermerSelecteurTableau() {
 if (btnInsertTable) {
   btnInsertTable.addEventListener('click', () => {
     if (!tablePicker) return;
-    if (tablePicker.hidden) { tablePicker.hidden = false; surlignerGrille(0, 0); }
+    if (tablePicker.hidden) { fermerMenusNote(); tablePicker.hidden = false; surlignerGrille(0, 0); }
     else fermerSelecteurTableau();
   });
 }
@@ -1413,7 +1430,7 @@ if (tablePickerGrid) {
 }
 
 document.addEventListener('pointerdown', (e) => {
-  if (tablePicker && !tablePicker.hidden && !e.target.closest('.table-picker-wrapper')) fermerSelecteurTableau();
+  if (!e.target.closest('.table-picker-wrapper, .note-dropdown')) { fermerSelecteurTableau(); fermerMenusNote(); }
 });
 
 // --- Insertion ---
@@ -1567,6 +1584,145 @@ if (noteContentInput) {
   });
 }
 
+// ==========================================================================
+// MISE EN FORME : gras / italique / souligné, alignement, interligne, listes
+// ==========================================================================
+function fermerMenusNote() {
+  document.querySelectorAll('.note-menu').forEach(m => { m.hidden = true; });
+}
+
+// Redonne le focus à l'éditeur et rétablit le curseur (les boutons ne doivent pas le faire perdre)
+function preparerSelection() {
+  if (!noteContentInput) return;
+  noteContentInput.focus();
+  const sel = window.getSelection();
+  let range = selectionNote;
+  if (!range || !noteContentInput.contains(range.startContainer)) {
+    range = document.createRange();
+    range.selectNodeContents(noteContentInput);
+    range.collapse(false);
+  }
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+// Bloc (div / p / li) qui contient un noeud, sans compter l'éditeur lui-même
+function blocDe(noeud) {
+  if (noeud && noeud.nodeType === 3) noeud = noeud.parentElement;
+  const b = noeud && noeud.closest ? noeud.closest('div, p, li') : null;
+  return (b && b !== noteContentInput && noteContentInput.contains(b)) ? b : null;
+}
+
+function listeCourante() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || !noteContentInput) return null;
+  let n = sel.anchorNode;
+  if (n && n.nodeType === 3) n = n.parentElement;
+  const l = n && n.closest ? n.closest('ul, ol') : null;
+  return (l && noteContentInput.contains(l)) ? l : null;
+}
+
+function executerCommande(cmd) {
+  preparerSelection();
+  document.execCommand(cmd, false, null);
+  majEtatsOutils();
+}
+
+function appliquerInterligne(valeur) {
+  preparerSelection();
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  let range = sel.getRangeAt(0);
+  // Texte posé directement dans l'éditeur : on l'enveloppe d'abord dans un bloc
+  if (!blocDe(range.startContainer) || !blocDe(range.endContainer)) {
+    document.execCommand('formatBlock', false, 'div');
+    range = window.getSelection().getRangeAt(0);
+  }
+  Array.from(noteContentInput.querySelectorAll('div, p, li'))
+    .filter(el => range.intersectsNode(el) && !el.querySelector('div, p, li, table'))
+    .forEach(el => { el.style.lineHeight = valeur; });
+}
+
+function basculerListe(type) {
+  preparerSelection();
+  const l = listeCourante();
+  const estPuces = l && l.tagName === 'UL';
+  const estCoche = estPuces && l.classList.contains('checklist');
+  if (type === 'number') {
+    document.execCommand('insertOrderedList');
+  } else if (type === 'bullet') {
+    if (estCoche) l.classList.remove('checklist');        // cases -> puces
+    else document.execCommand('insertUnorderedList');
+  } else { // cases à cocher
+    if (estCoche) document.execCommand('insertUnorderedList');   // retire la liste
+    else if (estPuces) l.classList.add('checklist');             // puces -> cases
+    else {
+      document.execCommand('insertUnorderedList');
+      const n = listeCourante();
+      if (n && n.tagName === 'UL') n.classList.add('checklist');
+    }
+  }
+  majEtatsOutils();
+}
+
+// Met en surbrillance les boutons actifs à l'endroit du curseur
+function majEtatsOutils() {
+  ['bold', 'italic', 'underline'].forEach(cmd => {
+    const b = document.querySelector(`[data-cmd="${cmd}"]`);
+    if (b) b.classList.toggle('active', document.queryCommandState(cmd));
+  });
+  const l = listeCourante();
+  const ul = l && l.tagName === 'UL';
+  const coche = ul && l.classList.contains('checklist');
+  const etats = { check: coche, bullet: ul && !coche, number: l && l.tagName === 'OL' };
+  Object.keys(etats).forEach(k => {
+    const b = document.querySelector(`[data-list="${k}"]`);
+    if (b) b.classList.toggle('active', !!etats[k]);
+  });
+}
+
+document.querySelectorAll('[data-menu]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const menu = document.getElementById(btn.dataset.menu);
+    if (!menu) return;
+    const etaitFerme = menu.hidden;
+    fermerMenusNote();
+    fermerSelecteurTableau();
+    menu.hidden = !etaitFerme;
+  });
+});
+document.querySelectorAll('[data-cmd]').forEach(btn => {
+  btn.addEventListener('click', () => { executerCommande(btn.dataset.cmd); fermerMenusNote(); });
+});
+document.querySelectorAll('[data-spacing]').forEach(btn => {
+  btn.addEventListener('click', () => { appliquerInterligne(btn.dataset.spacing); fermerMenusNote(); });
+});
+document.querySelectorAll('[data-list]').forEach(btn => {
+  btn.addEventListener('click', () => basculerListe(btn.dataset.list));
+});
+
+// Cases à cocher : un clic sur la case (à gauche de la ligne) coche / décoche
+function caseSousPointeur(e) {
+  const li = e.target.closest ? e.target.closest('li') : null;
+  if (!li || !li.parentElement || !li.parentElement.classList.contains('checklist')) return null;
+  const x = e.clientX - li.getBoundingClientRect().left;
+  return (x >= 0 && x < 26) ? li : null;
+}
+
+if (noteContentInput) {
+  noteContentInput.addEventListener('mousedown', (e) => { if (caseSousPointeur(e)) e.preventDefault(); });
+  noteContentInput.addEventListener('click', (e) => {
+    const li = caseSousPointeur(e);
+    if (li) li.classList.toggle('checked');
+  });
+  // Nouvelle ligne dans une liste de cases : la nouvelle case repart décochée
+  noteContentInput.addEventListener('input', (e) => {
+    if (e.inputType !== 'insertParagraph') return;
+    const li = blocDe(window.getSelection().anchorNode);
+    if (li && li.tagName === 'LI') li.classList.remove('checked');
+  });
+}
+
 // --- MODAL DE CONFIRMATION ET SUPPRESSION ---
 function openDeleteModal(id) {
   noteToDeleteId = id;
@@ -1633,41 +1789,101 @@ function exportToTxt(title, content) {
   downloadFile(textBlob, filename);
 }
 
-// Export Word : vrai document .docx (paragraphes + vrais tableaux avec bordures)
+// Export Word : vrai document .docx (mise en forme, listes et tableaux avec bordures)
 async function exportToDocx(title, contentHtml) {
   if (!window.docx) {
     alert("La bibliothèque d'exportation Word n'est pas encore disponible.");
     return;
   }
   const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-          WidthType, BorderStyle } = window.docx;
+          WidthType, BorderStyle, AlignmentType, LevelFormat } = window.docx;
 
   const LARGEUR_PAGE = 9026; // A4, marges de 2,54 cm (en twips)
+  const BLOCS = ['DIV', 'P', 'H1', 'H2', 'H3'];
+  const ALIGNEMENTS = {
+    left: AlignmentType.LEFT, center: AlignmentType.CENTER,
+    right: AlignmentType.RIGHT, justify: AlignmentType.JUSTIFIED
+  };
+  let compteurListes = 0;
 
-  // Texte (avec \n pour les retours à la ligne) -> paragraphe Word
-  const paragraphe = (texte) => {
-    const lignes = texte.replace(/\n$/, '').split('\n');
-    return new Paragraph({
-      spacing: { after: 80 },
-      children: lignes.map((l, i) => new TextRun({ text: l, break: i > 0 ? 1 : undefined }))
-    });
+  // Gras / italique / souligné d'un élément (balises ou style)
+  const styleDe = (n) => {
+    const s = n.style || {};
+    const r = {};
+    const poids = parseInt(s.fontWeight, 10);
+    if (['B', 'STRONG'].includes(n.tagName) || s.fontWeight === 'bold' || poids >= 600) r.b = true;
+    else if (s.fontWeight === 'normal' || poids < 600) r.b = false;
+    if (['I', 'EM'].includes(n.tagName) || s.fontStyle === 'italic') r.i = true;
+    if (n.tagName === 'U' || (s.textDecoration || '').includes('underline')
+        || (s.textDecorationLine || '').includes('underline')) r.u = true;
+    return r;
   };
 
-  const BLOCS = ['DIV', 'P', 'UL', 'OL', 'LI', 'H1', 'H2', 'H3'];
+  // Propriétés héritées d'un bloc à ses enfants
+  const heriter = (ctx, n) => ({
+    ...ctx,
+    align: (n.style && n.style.textAlign) || n.getAttribute('align') || ctx.align,
+    line: (n.style && n.style.lineHeight) || ctx.line,
+    fmt: { ...(ctx.fmt || {}), ...styleDe(n) }
+  });
 
-  // Transforme le contenu HTML de la note en blocs Word
-  const versBlocs = (parent, sortie) => {
-    let tampon = '';
-    const vider = () => { if (tampon !== '') { sortie.push(paragraphe(tampon)); tampon = ''; } };
-    parent.childNodes.forEach(n => {
-      if (n.nodeType === 3) { tampon += n.nodeValue; return; }
+  const construireParagraphe = (segs, ctx) => {
+    const opts = {
+      spacing: { after: 80 },
+      children: segs.map(s => s.br
+        ? new TextRun({ break: 1 })
+        : new TextRun({ text: s.t, bold: s.b, italics: s.i, underline: s.u ? {} : undefined }))
+    };
+    if (ctx.align && ALIGNEMENTS[ctx.align]) opts.alignment = ALIGNEMENTS[ctx.align];
+    if (ctx.line && /^[\d.]+$/.test(ctx.line) && parseFloat(ctx.line) > 0) {
+      opts.spacing.line = Math.round(parseFloat(ctx.line) * 240);
+    }
+    if (ctx.liste && !ctx.liste.utilise) { // la puce n'est posée que sur le 1er paragraphe de l'élément
+      ctx.liste.utilise = true;
+      opts.numbering = { reference: ctx.liste.type, level: Math.min(ctx.liste.niveau, 2), instance: ctx.liste.instance };
+    }
+    return new Paragraph(opts);
+  };
+
+  // Transforme le HTML de la note en blocs Word
+  const versBlocs = (parent, sortie, ctx = {}) => {
+    let segs = [];
+    const vider = () => {
+      if (!segs.length) return;
+      if (segs[segs.length - 1].br) segs.pop(); // <br> final = simple marqueur de ligne vide
+      if (segs.length && segs.every(s => !s.br && /^\s*$/.test(s.t))) segs = [];
+      sortie.push(construireParagraphe(segs, ctx));
+      segs = [];
+    };
+    const inline = (n, fmt) => {
+      if (n.nodeType === 3) { if (n.nodeValue) segs.push({ t: n.nodeValue, ...fmt }); return; }
       if (n.nodeType !== 1) return;
-      if (n.tagName === 'BR') tampon += '\n';
-      else if (n.tagName === 'TABLE') { vider(); sortie.push(versTableau(n)); }
-      else if (BLOCS.includes(n.tagName)) { vider(); versBlocs(n, sortie); }
-      else tampon += n.textContent;
+      if (n.tagName === 'BR') { segs.push({ br: true }); return; }
+      const f = { ...fmt, ...styleDe(n) };
+      n.childNodes.forEach(c => inline(c, f));
+    };
+    parent.childNodes.forEach(n => {
+      if (n.nodeType === 1) {
+        if (n.tagName === 'TABLE') { vider(); sortie.push(versTableau(n)); return; }
+        if (n.tagName === 'UL' || n.tagName === 'OL') { vider(); versListe(n, sortie, ctx); return; }
+        if (BLOCS.includes(n.tagName)) { vider(); versBlocs(n, sortie, heriter(ctx, n)); return; }
+      }
+      inline(n, ctx.fmt || {});
     });
     vider();
+  };
+
+  const versListe = (liste, sortie, ctx) => {
+    const niveau = ctx.liste ? ctx.liste.niveau + 1 : 0;
+    const ordonnee = liste.tagName === 'OL';
+    const coche = liste.classList.contains('checklist');
+    const instance = ordonnee ? ++compteurListes : 0;
+    Array.from(liste.children).forEach(li => {
+      if (li.tagName !== 'LI') return;
+      const type = coche ? (li.classList.contains('checked') ? 'case-cochee' : 'case-vide')
+                         : (ordonnee ? 'num' : 'puces');
+      versBlocs(li, sortie, { ...heriter(ctx, li), liste: { niveau, type, instance } });
+    });
   };
 
   const versTableau = (t) => {
@@ -1695,6 +1911,21 @@ async function exportToDocx(title, contentHtml) {
     });
   };
 
+  // Définition des listes (3 niveaux d'imbrication)
+  const niveaux = (format, texte, police) => [0, 1, 2].map(l => ({
+    level: l, format, text: texte(l), alignment: AlignmentType.LEFT,
+    style: {
+      paragraph: { indent: { left: 720 * (l + 1), hanging: 360 } },
+      ...(police ? { run: { font: police } } : {})
+    }
+  }));
+  const listes = [
+    { reference: 'puces', levels: niveaux(LevelFormat.BULLET, () => '•') },
+    { reference: 'num', levels: niveaux(LevelFormat.DECIMAL, l => `%${l + 1}.`) },
+    { reference: 'case-vide', levels: niveaux(LevelFormat.BULLET, () => '☐', 'Segoe UI Symbol') },
+    { reference: 'case-cochee', levels: niveaux(LevelFormat.BULLET, () => '☑', 'Segoe UI Symbol') }
+  ];
+
   try {
     const racine = document.createElement('div');
     racine.innerHTML = contentHtml || '';
@@ -1704,6 +1935,7 @@ async function exportToDocx(title, contentHtml) {
     if (!blocs.length || blocs[blocs.length - 1] instanceof Table) blocs.push(new Paragraph({}));
 
     const doc = new Document({
+      numbering: { config: listes },
       styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
       sections: [{
         children: [
