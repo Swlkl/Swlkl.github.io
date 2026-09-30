@@ -656,16 +656,116 @@ body.music-playing .main-content { margin-right: 340px; }
   outline: none;
 }
 
-.note-editor textarea {
+/* BARRE D'OUTILS DE L'ÉDITEUR */
+.note-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #2c2c2e;
+}
+
+.note-tool-btn {
+  background: #2c2c2e;
+  border: 1px solid #3a3a3c;
+  color: #e5e5ea;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.note-tool-btn:hover { background: #3a3a3c; }
+.note-tool-btn.danger { color: #ff453a; }
+
+.table-picker-wrapper { position: relative; }
+
+.table-picker {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #2c2c2e;
+  border: 1px solid #3a3a3c;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+.table-picker[hidden],
+.table-edit-tools[hidden] { display: none; }
+
+.table-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 22px);
+  gap: 3px;
+  touch-action: none;
+}
+
+.table-picker-cell {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #48484a;
+  border-radius: 3px;
+  background: #1c1c1e;
+}
+
+.table-picker-cell.on {
+  background: rgba(229, 9, 20, 0.35);
+  border-color: var(--primary-red);
+}
+
+.table-picker-label {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #e5e5ea;
+}
+
+.table-edit-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ZONE D'ÉCRITURE (remplace l'ancien textarea) */
+.note-content-editable {
   flex: 1;
-  background: transparent;
-  border: none;
+  min-height: 0;
+  overflow: auto;
   color: #e5e5ea;
   font-size: 0.95rem;
   line-height: 1.5;
-  resize: none;
   outline: none;
-  font-family: inherit;
+  word-break: break-word;
+}
+
+.note-content-editable:empty::before {
+  content: attr(data-placeholder);
+  color: #8e8e93;
+  pointer-events: none;
+}
+
+.note-content-editable table.note-table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  min-width: 100%;
+}
+
+.note-content-editable .note-table td {
+  border: 1px solid #48484a;
+  padding: 8px;
+  min-width: 70px;
+  vertical-align: top;
+}
+
+.note-content-editable .note-table td.cell-active {
+  background: rgba(255, 255, 255, 0.06);
+  outline: 1px solid var(--primary-red);
+  outline-offset: -1px;
 }
 
 .note-editor-actions {
