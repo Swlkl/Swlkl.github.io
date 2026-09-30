@@ -1633,34 +1633,94 @@ function exportToTxt(title, content) {
   downloadFile(textBlob, filename);
 }
 
-function exportToDocx(title, contentHtml) {
-  const corps = (contentHtml || '').replace(/<table[^>]*>/g,
-    '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">');
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>${escapeHtml(title)}</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.5; }
-        h1 { color: #2563eb; font-size: 20pt; }
-        td { border: 1px solid #999; padding: 6px; vertical-align: top; }
-      </style>
-    </head>
-    <body>
-      <h1>${escapeHtml(title)}</h1>
-      <div>${corps}</div>
-    </body>
-    </html>
-  `;
-
-  if (window.htmlDocx) {
-    const converted = window.htmlDocx.asBlob(htmlContent);
-    const filename = `${sanitizeFilename(title)}.docx`;
-    downloadFile(converted, filename);
-  } else {
+// Export Word : vrai document .docx (paragraphes + vrais tableaux avec bordures)
+async function exportToDocx(title, contentHtml) {
+  if (!window.docx) {
     alert("La bibliothèque d'exportation Word n'est pas encore disponible.");
+    return;
+  }
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+          WidthType, BorderStyle } = window.docx;
+
+  const LARGEUR_PAGE = 9026; // A4, marges de 2,54 cm (en twips)
+
+  // Texte (avec \n pour les retours à la ligne) -> paragraphe Word
+  const paragraphe = (texte) => {
+    const lignes = texte.replace(/\n$/, '').split('\n');
+    return new Paragraph({
+      spacing: { after: 80 },
+      children: lignes.map((l, i) => new TextRun({ text: l, break: i > 0 ? 1 : undefined }))
+    });
+  };
+
+  const BLOCS = ['DIV', 'P', 'UL', 'OL', 'LI', 'H1', 'H2', 'H3'];
+
+  // Transforme le contenu HTML de la note en blocs Word
+  const versBlocs = (parent, sortie) => {
+    let tampon = '';
+    const vider = () => { if (tampon !== '') { sortie.push(paragraphe(tampon)); tampon = ''; } };
+    parent.childNodes.forEach(n => {
+      if (n.nodeType === 3) { tampon += n.nodeValue; return; }
+      if (n.nodeType !== 1) return;
+      if (n.tagName === 'BR') tampon += '\n';
+      else if (n.tagName === 'TABLE') { vider(); sortie.push(versTableau(n)); }
+      else if (BLOCS.includes(n.tagName)) { vider(); versBlocs(n, sortie); }
+      else tampon += n.textContent;
+    });
+    vider();
+  };
+
+  const versTableau = (t) => {
+    const trait = { style: BorderStyle.SINGLE, size: 4, color: '999999' };
+    const bordures = { top: trait, bottom: trait, left: trait, right: trait };
+    const lignes = Array.from(t.rows);
+    const nbCols = Math.max(1, ...lignes.map(r => r.cells.length));
+    const largeurCol = Math.floor(LARGEUR_PAGE / nbCols);
+    return new Table({
+      width: { size: largeurCol * nbCols, type: WidthType.DXA },
+      columnWidths: Array(nbCols).fill(largeurCol),
+      rows: lignes.map(tr => new TableRow({
+        children: Array.from(tr.cells).map(td => {
+          const enfants = [];
+          versBlocs(td, enfants);
+          if (!enfants.length) enfants.push(new Paragraph({}));
+          return new TableCell({
+            children: enfants,
+            borders: bordures,
+            width: { size: largeurCol, type: WidthType.DXA },
+            margins: { top: 60, bottom: 60, left: 100, right: 100 }
+          });
+        })
+      }))
+    });
+  };
+
+  try {
+    const racine = document.createElement('div');
+    racine.innerHTML = contentHtml || '';
+    const blocs = [];
+    versBlocs(racine, blocs);
+    // Word exige un paragraphe après un tableau placé en fin de document
+    if (!blocs.length || blocs[blocs.length - 1] instanceof Table) blocs.push(new Paragraph({}));
+
+    const doc = new Document({
+      styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+      sections: [{
+        children: [
+          new Paragraph({
+            spacing: { after: 240 },
+            children: [new TextRun({ text: title || 'Note', bold: true, size: 40, color: '2563EB' })]
+          }),
+          ...blocs
+        ]
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    downloadFile(blob, `${sanitizeFilename(title)}.docx`);
+  } catch (err) {
+    console.error('Erreur export Word :', err);
+    alert("Erreur pendant l'export Word.");
   }
 }
 
