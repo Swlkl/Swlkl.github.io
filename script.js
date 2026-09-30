@@ -1234,7 +1234,7 @@ function afficherNotes() {
     item.innerHTML = `
       <div class="note-item-content">
         <div class="note-item-title">${escapeHtml(note.titre || 'Document sans titre')}</div>
-        <div class="note-item-snippet">${escapeHtml(note.contenu || 'Document vide...')}</div>
+        <div class="note-item-snippet">${escapeHtml(noteVersTexte(note).replace(/\s+/g, ' ').trim() || 'Document vide...')}</div>
       </div>
       <div class="note-actions">
         <button class="btn btn-docx btn-export-docx">.docx</button>
@@ -1246,11 +1246,11 @@ function afficherNotes() {
     item.querySelector('.note-item-content').addEventListener('click', () => ouvrirEditeurNote(note));
     item.querySelector('.btn-export-docx').addEventListener('click', (e) => {
       e.stopPropagation();
-      exportToDocx(note.titre || 'Note', note.contenu || '');
+      exportToDocx(note.titre || 'Note', noteVersHtml(note));
     });
     item.querySelector('.btn-export-txt').addEventListener('click', (e) => {
       e.stopPropagation();
-      exportToTxt(note.titre || 'Note', note.contenu || '');
+      exportToTxt(note.titre || 'Note', noteVersTexte(note, true));
     });
     item.querySelector('.btn-delete-note').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1266,11 +1266,11 @@ function ouvrirEditeurNote(note = null) {
   if (note) {
     noteEnCoursId = note.id;
     if (noteTitleInput) noteTitleInput.value = note.titre;
-    if (noteContentInput) noteContentInput.value = note.contenu;
+    if (noteContentInput) noteContentInput.innerHTML = noteVersHtml(note);
   } else {
     noteEnCoursId = null;
     if (noteTitleInput) noteTitleInput.value = '';
-    if (noteContentInput) noteContentInput.value = '';
+    if (noteContentInput) noteContentInput.innerHTML = '';
   }
   noteEditor.classList.add('active');
   if (noteTitleInput) noteTitleInput.focus();
@@ -1278,7 +1278,293 @@ function ouvrirEditeurNote(note = null) {
 
 function fermerEditeurNote() {
   if (noteEditor) noteEditor.classList.remove('active');
+  if (typeof fermerSelecteurTableau === 'function') fermerSelecteurTableau();
   noteEnCoursId = null;
+}
+
+// ==========================================================================
+// ÉDITEUR RICHE : CONVERSIONS + TABLEAUX (sélecteur de taille façon Google Docs)
+// ==========================================================================
+// Les anciennes notes (texte brut, sans "format") restent lisibles.
+function noteVersHtml(note) {
+  if (!note || !note.contenu) return '';
+  if (note.format === 'html') return note.contenu;
+  return escapeHtml(note.contenu).replace(/\r?\n/g, '<br>');
+}
+
+function htmlVersTexte(html, avecGrille = false) {
+  const racine = document.createElement('div');
+  racine.innerHTML = html || '';
+  const parcourir = (n) => {
+    if (n.nodeType === 3) return n.nodeValue;
+    if (n.nodeType !== 1) return '';
+    if (n.tagName === 'BR') return '\n';
+    if (n.tagName === 'TABLE') {
+      const donnees = Array.from(n.rows).map(tr =>
+        Array.from(tr.cells).map(td => parcourir(td).trim().replace(/\s*\n\s*/g, ' '))
+      );
+      if (!avecGrille) return '\n' + donnees.map(l => l.join(' | ')).join('\n') + '\n';
+
+      // Tableau dessiné avec des caractères : colonnes alignées + lignes de séparation
+      const nbCols = Math.max(...donnees.map(l => l.length));
+      const largeurs = [];
+      for (let c = 0; c < nbCols; c++) {
+        largeurs[c] = Math.max(3, ...donnees.map(l => (l[c] || '').length));
+      }
+      const separateur = '+' + largeurs.map(w => '-'.repeat(w + 2)).join('+') + '+';
+      const ligneTexte = (l) => '| ' + largeurs.map((w, c) => (l[c] || '').padEnd(w)).join(' | ') + ' |';
+      const sortie = [separateur];
+      donnees.forEach(l => { sortie.push(ligneTexte(l)); sortie.push(separateur); });
+      return '\n' + sortie.join('\n') + '\n';
+    }
+    const contenu = Array.from(n.childNodes).map(parcourir).join('');
+    return (n.tagName === 'DIV' || n.tagName === 'P') ? contenu + '\n' : contenu;
+  };
+  return parcourir(racine).replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function noteVersTexte(note, avecGrille = false) {
+  if (!note || !note.contenu) return '';
+  return note.format === 'html' ? htmlVersTexte(note.contenu, avecGrille) : note.contenu;
+}
+
+function editeurNoteVide() {
+  return !noteContentInput
+    || (noteContentInput.textContent.trim() === '' && !noteContentInput.querySelector('table'));
+}
+
+const btnInsertTable     = document.getElementById('btnInsertTable');
+const tablePicker        = document.getElementById('tablePicker');
+const tablePickerGrid    = document.getElementById('tablePickerGrid');
+const tablePickerLabel   = document.getElementById('tablePickerLabel');
+const tableEditTools     = document.getElementById('tableEditTools');
+const noteToolbar        = document.getElementById('noteToolbar');
+
+const TABLEAU_MAX_LIGNES = 8;
+const TABLEAU_MAX_COLONNES = 10;
+let selectionNote = null; // dernière position du curseur dans l'éditeur
+
+// Garde en mémoire la position du curseur (le clic sur un bouton ne doit pas la perdre)
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (noteContentInput && sel.rangeCount && noteContentInput.contains(sel.anchorNode)) {
+    selectionNote = sel.getRangeAt(0).cloneRange();
+    majOutilsTableau();
+  }
+});
+
+if (noteToolbar) {
+  noteToolbar.addEventListener('mousedown', (e) => e.preventDefault());
+}
+
+// --- Grille de sélection ---
+if (tablePickerGrid) {
+  for (let l = 1; l <= TABLEAU_MAX_LIGNES; l++) {
+    for (let c = 1; c <= TABLEAU_MAX_COLONNES; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'table-picker-cell';
+      cell.dataset.l = l;
+      cell.dataset.c = c;
+      tablePickerGrid.appendChild(cell);
+    }
+  }
+}
+
+function surlignerGrille(lignes, colonnes) {
+  if (!tablePickerGrid) return;
+  Array.from(tablePickerGrid.children).forEach(cell => {
+    cell.classList.toggle('on', +cell.dataset.l <= lignes && +cell.dataset.c <= colonnes);
+  });
+  if (tablePickerLabel) {
+    tablePickerLabel.textContent = (lignes && colonnes) ? `${colonnes} × ${lignes}` : 'Choisir la taille';
+  }
+}
+
+function celluleGrilleSousPointeur(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  return (el && el.classList.contains('table-picker-cell')) ? el : null;
+}
+
+function fermerSelecteurTableau() {
+  if (tablePicker) tablePicker.hidden = true;
+  surlignerGrille(0, 0);
+}
+
+if (btnInsertTable) {
+  btnInsertTable.addEventListener('click', () => {
+    if (!tablePicker) return;
+    if (tablePicker.hidden) { tablePicker.hidden = false; surlignerGrille(0, 0); }
+    else fermerSelecteurTableau();
+  });
+}
+
+if (tablePickerGrid) {
+  const survol = (e) => {
+    const cell = celluleGrilleSousPointeur(e);
+    if (cell) surlignerGrille(+cell.dataset.l, +cell.dataset.c);
+  };
+  tablePickerGrid.addEventListener('pointermove', survol);
+  tablePickerGrid.addEventListener('pointerdown', survol); // tactile : le doigt affiche déjà la taille
+  tablePickerGrid.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') surlignerGrille(0, 0); });
+  tablePickerGrid.addEventListener('pointerup', (e) => {
+    const cell = celluleGrilleSousPointeur(e);
+    if (cell) insererTableau(+cell.dataset.l, +cell.dataset.c);
+  });
+}
+
+document.addEventListener('pointerdown', (e) => {
+  if (tablePicker && !tablePicker.hidden && !e.target.closest('.table-picker-wrapper')) fermerSelecteurTableau();
+});
+
+// --- Insertion ---
+function insererTableau(lignes, colonnes) {
+  fermerSelecteurTableau();
+  if (!noteContentInput) return;
+  noteContentInput.focus();
+
+  const sel = window.getSelection();
+  let range = selectionNote;
+  if (!range || !noteContentInput.contains(range.startContainer)) {
+    range = document.createRange();
+    range.selectNodeContents(noteContentInput);
+    range.collapse(false); // fin du document par défaut
+  }
+  // Si le curseur est déjà dans un tableau, on insère après lui (pas de tableau imbriqué)
+  const cellule = celluleDe(range.startContainer);
+  if (cellule) {
+    range = document.createRange();
+    range.setStartAfter(cellule.closest('table'));
+    range.collapse(true);
+  }
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  let html = '<table class="note-table" data-new="1"><tbody>';
+  for (let l = 0; l < lignes; l++) html += '<tr>' + '<td><br></td>'.repeat(colonnes) + '</tr>';
+  html += '</tbody></table><div><br></div>';
+  document.execCommand('insertHTML', false, html);
+
+  const nouveau = noteContentInput.querySelector('table[data-new]');
+  if (nouveau) {
+    nouveau.removeAttribute('data-new');
+    placerCurseur(nouveau.rows[0].cells[0]);
+  }
+}
+
+// --- Édition du tableau (lignes / colonnes) ---
+function celluleDe(noeud) {
+  if (noeud && noeud.nodeType === 3) noeud = noeud.parentElement;
+  const td = noeud && noeud.closest ? noeud.closest('td, th') : null;
+  return (td && noteContentInput && noteContentInput.contains(td)) ? td : null;
+}
+
+function celluleCourante() {
+  const sel = window.getSelection();
+  return sel.rangeCount ? celluleDe(sel.anchorNode) : null;
+}
+
+function placerCurseur(cellule) {
+  if (!cellule) return;
+  const r = document.createRange();
+  r.selectNodeContents(cellule);
+  r.collapse(true);
+  const s = window.getSelection();
+  s.removeAllRanges();
+  s.addRange(r);
+}
+
+function majOutilsTableau() {
+  const cellule = celluleCourante();
+  if (tableEditTools) tableEditTools.hidden = !cellule;
+  if (noteContentInput) {
+    noteContentInput.querySelectorAll('td.cell-active').forEach(td => td.classList.remove('cell-active'));
+  }
+  if (cellule) cellule.classList.add('cell-active');
+}
+
+function ajouterLigne() {
+  const cellule = celluleCourante();
+  if (!cellule) return null;
+  const tr = cellule.parentElement;
+  const nouvelle = document.createElement('tr');
+  for (let i = 0; i < tr.cells.length; i++) nouvelle.insertCell().innerHTML = '<br>';
+  tr.after(nouvelle);
+  placerCurseur(nouvelle.cells[Math.min(cellule.cellIndex, nouvelle.cells.length - 1)]);
+  return nouvelle;
+}
+
+function ajouterColonne() {
+  const cellule = celluleCourante();
+  if (!cellule) return;
+  const idx = cellule.cellIndex;
+  Array.from(cellule.closest('table').rows).forEach(tr => {
+    tr.insertCell(Math.min(idx + 1, tr.cells.length)).innerHTML = '<br>';
+  });
+  placerCurseur(cellule.nextElementSibling);
+}
+
+function supprimerLigne() {
+  const cellule = celluleCourante();
+  if (!cellule) return;
+  const table = cellule.closest('table');
+  if (table.rows.length === 1) return supprimerTableau();
+  const iLigne = cellule.parentElement.rowIndex, iCol = cellule.cellIndex;
+  table.deleteRow(iLigne);
+  const tr = table.rows[Math.min(iLigne, table.rows.length - 1)];
+  placerCurseur(tr.cells[Math.min(iCol, tr.cells.length - 1)]);
+}
+
+function supprimerColonne() {
+  const cellule = celluleCourante();
+  if (!cellule) return;
+  const table = cellule.closest('table');
+  if (cellule.parentElement.cells.length === 1) return supprimerTableau();
+  const iLigne = cellule.parentElement.rowIndex, iCol = cellule.cellIndex;
+  Array.from(table.rows).forEach(tr => { if (tr.cells[iCol]) tr.deleteCell(iCol); });
+  const tr = table.rows[iLigne];
+  placerCurseur(tr.cells[Math.min(iCol, tr.cells.length - 1)]);
+}
+
+function supprimerTableau() {
+  const cellule = celluleCourante();
+  if (!cellule) return;
+  cellule.closest('table').remove();
+  noteContentInput.focus();
+  majOutilsTableau();
+}
+
+const brancher = (id, fn) => { const b = document.getElementById(id); if (b) b.addEventListener('click', fn); };
+brancher('btnRowAdd', ajouterLigne);
+brancher('btnColAdd', ajouterColonne);
+brancher('btnRowDel', supprimerLigne);
+brancher('btnColDel', supprimerColonne);
+brancher('btnTableDel', supprimerTableau);
+
+if (noteContentInput) {
+  // Tab / Maj+Tab : navigation entre cellules (nouvelle ligne si on est à la dernière)
+  noteContentInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const cellule = celluleCourante();
+    if (!cellule) return;
+    e.preventDefault();
+    const cellules = Array.from(cellule.closest('table').querySelectorAll('td, th'));
+    const i = cellules.indexOf(cellule);
+    if (e.shiftKey) { if (i > 0) placerCurseur(cellules[i - 1]); }
+    else if (i < cellules.length - 1) placerCurseur(cellules[i + 1]);
+    else { const tr = ajouterLigne(); if (tr) placerCurseur(tr.cells[0]); }
+  });
+
+  // Collage en texte brut (évite d'importer le style d'autres pages)
+  noteContentInput.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const texte = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, texte);
+  });
+
+  // Garde le placeholder fonctionnel quand tout est effacé
+  noteContentInput.addEventListener('input', () => {
+    if (editeurNoteVide() && noteContentInput.innerHTML !== '') noteContentInput.innerHTML = '';
+  });
 }
 
 // --- MODAL DE CONFIRMATION ET SUPPRESSION ---
@@ -1315,7 +1601,7 @@ if (btnBackToList) btnBackToList.addEventListener('click', fermerEditeurNote);
 if (btnSaveNote) {
   btnSaveNote.addEventListener('click', () => {
     const titre = noteTitleInput ? noteTitleInput.value.trim() : '';
-    const contenu = noteContentInput ? noteContentInput.value.trim() : '';
+    const contenu = (noteContentInput && !editeurNoteVide()) ? noteContentInput.innerHTML.trim() : '';
     if (!titre && !contenu) { fermerEditeurNote(); return; }
 
     if (noteEnCoursId) {
@@ -1323,12 +1609,14 @@ if (btnSaveNote) {
       if (idx !== -1) {
         mesNotes[idx].titre = titre || 'Document sans titre';
         mesNotes[idx].contenu = contenu;
+        mesNotes[idx].format = 'html';
       }
     } else {
       mesNotes.unshift({
         id: Date.now(),
         titre: titre || 'Document sans titre',
         contenu: contenu,
+        format: 'html',
         date: new Date().toLocaleDateString()
       });
     }
@@ -1345,7 +1633,9 @@ function exportToTxt(title, content) {
   downloadFile(textBlob, filename);
 }
 
-function exportToDocx(title, content) {
+function exportToDocx(title, contentHtml) {
+  const corps = (contentHtml || '').replace(/<table[^>]*>/g,
+    '<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;">');
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -1355,12 +1645,12 @@ function exportToDocx(title, content) {
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.5; }
         h1 { color: #2563eb; font-size: 20pt; }
-        pre { background-color: #f1f5f9; padding: 10px; font-family: monospace; font-size: 10pt; }
+        td { border: 1px solid #999; padding: 6px; vertical-align: top; }
       </style>
     </head>
     <body>
       <h1>${escapeHtml(title)}</h1>
-      <pre>${escapeHtml(content)}</pre>
+      <div>${corps}</div>
     </body>
     </html>
   `;
