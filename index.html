@@ -370,6 +370,52 @@
 
         <!-- BARRE D'OUTILS DE L'ÉDITEUR -->
         <div class="note-toolbar" id="noteToolbar">
+          <!-- Gras / Italique / Souligné -->
+          <div class="note-group">
+            <button type="button" class="note-tool-btn icon" data-cmd="bold" title="Gras (Ctrl+B)"><b>B</b></button>
+            <button type="button" class="note-tool-btn icon" data-cmd="italic" title="Italique (Ctrl+I)"><i>I</i></button>
+            <button type="button" class="note-tool-btn icon" data-cmd="underline" title="Souligné (Ctrl+U)"><u>U</u></button>
+          </div>
+
+          <!-- Alignement + interligne -->
+          <div class="note-group">
+            <div class="note-dropdown">
+              <button type="button" class="note-tool-btn icon" data-menu="menuAlign" title="Alignement">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8"/></svg><span class="caret">▾</span>
+              </button>
+              <div class="note-menu" id="menuAlign" hidden>
+                <button type="button" data-cmd="justifyLeft">Aligner à gauche</button>
+                <button type="button" data-cmd="justifyCenter">Centrer</button>
+                <button type="button" data-cmd="justifyRight">Aligner à droite</button>
+                <button type="button" data-cmd="justifyFull">Justifier</button>
+              </div>
+            </div>
+            <div class="note-dropdown">
+              <button type="button" class="note-tool-btn icon" data-menu="menuSpacing" title="Interligne">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 2v12M2.5 4l2-2 2 2M2.5 12l2 2 2-2M10 4h4M10 8h4M10 12h4"/></svg><span class="caret">▾</span>
+              </button>
+              <div class="note-menu" id="menuSpacing" hidden>
+                <button type="button" data-spacing="1">Simple</button>
+                <button type="button" data-spacing="1.15">1,15</button>
+                <button type="button" data-spacing="1.5">1,5</button>
+                <button type="button" data-spacing="2">Double</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Listes -->
+          <div class="note-group">
+            <button type="button" class="note-tool-btn icon" data-list="check" title="Liste de cases à cocher">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4l1.5 1.5L5.5 2.5M1.5 11.5L3 13l2.5-3M8 4h6.5M8 11.5h6.5"/></svg>
+            </button>
+            <button type="button" class="note-tool-btn icon" data-list="bullet" title="Liste à puces">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="2.5" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="2.5" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="2.5" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M6 4h8.5M6 8h8.5M6 12h8.5"/></svg>
+            </button>
+            <button type="button" class="note-tool-btn icon" data-list="number" title="Liste numérotée">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" stroke="currentColor"><text x="0.5" y="5.5" font-size="5" stroke="none">1</text><text x="0.5" y="9.5" font-size="5" stroke="none">2</text><text x="0.5" y="13.5" font-size="5" stroke="none">3</text><path d="M6 4h8.5M6 8h8.5M6 12h8.5" fill="none" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+
           <div class="table-picker-wrapper">
             <button type="button" class="note-tool-btn" id="btnInsertTable" title="Insérer un tableau">▦ Tableau</button>
             <div class="table-picker" id="tablePicker" hidden>
