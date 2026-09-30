@@ -367,7 +367,26 @@
       <!-- ÉDITEUR D'ÉCRITURE EN SUPERPOSITION -->
       <div class="note-editor" id="noteEditor">
         <input type="text" id="noteTitleInput" placeholder="Titre du document..." />
-        <textarea id="noteContentInput" placeholder="Écrivez votre note ici..."></textarea>
+
+        <!-- BARRE D'OUTILS DE L'ÉDITEUR -->
+        <div class="note-toolbar" id="noteToolbar">
+          <div class="table-picker-wrapper">
+            <button type="button" class="note-tool-btn" id="btnInsertTable" title="Insérer un tableau">▦ Tableau</button>
+            <div class="table-picker" id="tablePicker" hidden>
+              <div class="table-picker-grid" id="tablePickerGrid"></div>
+              <div class="table-picker-label" id="tablePickerLabel">Choisir la taille</div>
+            </div>
+          </div>
+          <div class="table-edit-tools" id="tableEditTools" hidden>
+            <button type="button" class="note-tool-btn" id="btnRowAdd" title="Ajouter une ligne dessous">+ Ligne</button>
+            <button type="button" class="note-tool-btn" id="btnColAdd" title="Ajouter une colonne à droite">+ Colonne</button>
+            <button type="button" class="note-tool-btn" id="btnRowDel" title="Supprimer la ligne">− Ligne</button>
+            <button type="button" class="note-tool-btn" id="btnColDel" title="Supprimer la colonne">− Colonne</button>
+            <button type="button" class="note-tool-btn danger" id="btnTableDel" title="Supprimer le tableau">🗑 Tableau</button>
+          </div>
+        </div>
+
+        <div id="noteContentInput" class="note-content-editable" contenteditable="true" data-placeholder="Écrivez votre note ici..."></div>
         <div class="note-editor-actions">
           <button class="btn-secondary" id="btnBackToList">Annuler</button>
           <button class="btn-play" id="btnSaveNote">Enregistrer</button>
@@ -378,6 +397,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
