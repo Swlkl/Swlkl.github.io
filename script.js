@@ -25,6 +25,7 @@ let maListe       = [];
 let notifications = [];
 let mesNotes      = [];
 let mesVus        = []; // [{ filmId, date, note (0-5), commentaire }]
+let mesProgres    = []; // [{ id, pos, dur, date }] : films/vidéos commencés ("Continuer de voir")
 let filmEnCours   = null; // film actuellement lu dans le lecteur
 
 let filmSelectionneDetails = null;
@@ -76,7 +77,8 @@ async function chargerDonneesCloud() {
       maListe: JSON.parse(localStorage.getItem('maListeNetflix')) || [],
       notifications: JSON.parse(localStorage.getItem('mesNotifications')) || [],
       notes: JSON.parse(localStorage.getItem('mesNotesApp')) || [],
-      vus: JSON.parse(localStorage.getItem('mesVusApp')) || []
+      vus: JSON.parse(localStorage.getItem('mesVusApp')) || [],
+      progres: JSON.parse(localStorage.getItem('mesProgresApp')) || []
     };
   }
 }
@@ -88,7 +90,8 @@ async function sauvegarderDonneesCloud() {
     maListe: maListe,
     notifications: notifications,
     notes: mesNotes,
-    vus: mesVus
+    vus: mesVus,
+    progres: mesProgres
   };
 
   localStorage.setItem('mesVideosNetflix', JSON.stringify(listeFilms));
@@ -97,6 +100,7 @@ async function sauvegarderDonneesCloud() {
   localStorage.setItem('mesNotifications', JSON.stringify(notifications));
   localStorage.setItem('mesNotesApp', JSON.stringify(mesNotes));
   localStorage.setItem('mesVusApp', JSON.stringify(mesVus));
+  localStorage.setItem('mesProgresApp', JSON.stringify(mesProgres));
 
   try {
     const { data: { session } } = await _supabase.auth.getSession();
@@ -501,6 +505,45 @@ function injecterBarreFiltres(container, genresDisponibles) {
   }
 }
 
+// Titre de grande section de l'accueil (« Films », « Vidéos YouTube ») avec lien « Tout voir »
+function creerTitreSection(titre, idBoutonNav) {
+  const bloc = document.createElement('div');
+  bloc.className = 'home-section-title';
+  bloc.innerHTML = '<h2></h2><button type="button" class="home-see-all">Tout voir ›</button>';
+  bloc.querySelector('h2').textContent = titre;
+  bloc.querySelector('.home-see-all').addEventListener('click', () => {
+    const nav = document.getElementById(idBoutonNav);
+    if (nav) nav.click();
+  });
+  return bloc;
+}
+
+// Rangée horizontale façon Netflix (titre + cartes + flèches)
+function creerRangeeCarousel(titre, films = []) {
+  const section = document.createElement('section');
+  section.className = 'category-row';
+  section.innerHTML = '<h2 class="category-row-title"></h2>';
+  section.querySelector('.category-row-title').textContent = titre;
+
+  const flex = document.createElement('div');
+  flex.className = 'category-flex-container';
+  if (films.length) creerCartesHTMLInContainer(films, flex);
+  section.appendChild(flex);
+
+  const btnLeft = document.createElement('button');
+  btnLeft.className = 'carousel-arrow left';
+  btnLeft.innerHTML = '‹';
+  btnLeft.onclick = () => flex.scrollBy({ left: -flex.clientWidth * 0.75, behavior: 'smooth' });
+  const btnRight = document.createElement('button');
+  btnRight.className = 'carousel-arrow right';
+  btnRight.innerHTML = '›';
+  btnRight.onclick = () => flex.scrollBy({ left: flex.clientWidth * 0.75, behavior: 'smooth' });
+  section.appendChild(btnLeft);
+  section.appendChild(btnRight);
+
+  return { section, flex };
+}
+
 // ==========================================================================
 // RENDU DU CATALOGUE
 // ==========================================================================
@@ -551,46 +594,32 @@ function genererCatalogue(onglet) {
     mettreAJourHeroBanner();
 
     const films = listeFilms.filter(f => f.type === 'film');
-    const categories = [{ titre: "Films", liste: films }];
+    const rangeesYoutube = typesYoutube
+      .map(typeKey => ({
+        titre: sousCategoriesLibelles[typeKey] || typeKey.charAt(0).toUpperCase() + typeKey.slice(1),
+        liste: listeFilms.filter(f => f.type === typeKey)
+      }))
+      .filter(cat => cat.liste.length > 0);
 
-    typesYoutube.forEach(typeKey => {
-      const contenuFiltrer = listeFilms.filter(f => f.type === typeKey);
-      const labelTitre = sousCategoriesLibelles[typeKey] || typeKey.charAt(0).toUpperCase() + typeKey.slice(1);
-      categories.push({ titre: labelTitre, liste: contenuFiltrer });
-    });
-
-    const totalElements = categories.reduce((sum, cat) => sum + cat.liste.length, 0);
-    if (totalElements === 0) {
+    const tmdbActif = (typeof TMDB_API_KEY !== 'undefined' && !!TMDB_API_KEY);
+    if (films.length === 0 && rangeesYoutube.length === 0 && !tmdbActif) {
       catalog.innerHTML = "<p class='empty-msg'>Aucun contenu disponible pour le moment.</p>";
       return;
     }
 
-    categories.forEach(cat => {
-      if (cat.liste.length > 0) {
-        const section = document.createElement('section');
-        section.className = 'category-row';
-        section.innerHTML = `<h2 class="category-row-title">${cat.titre}</h2>`;
-        
-        const flexContainer = document.createElement('div');
-        flexContainer.className = 'category-flex-container';
-        creerCartesHTMLInContainer(cat.liste, flexContainer);
-        section.appendChild(flexContainer);
+    // 1) Continuer de voir (films et vidéos commencés)
+    if (typeof rangeeContinuerDeVoir === 'function') rangeeContinuerDeVoir(catalog);
 
-        const btnLeft = document.createElement('button');
-        btnLeft.className = 'carousel-arrow left';
-        btnLeft.innerHTML = '‹';
-        btnLeft.onclick = () => flexContainer.scrollBy({ left: -flexContainer.clientWidth * 0.75, behavior: 'smooth' });
+    // 2) Section Films : ma bibliothèque + rangées TMDB (genres, plateformes...)
+    catalog.appendChild(creerTitreSection('Films', 'btnFilms'));
+    if (films.length > 0) catalog.appendChild(creerRangeeCarousel('Ma bibliothèque', films).section);
+    if (typeof injecterRangeesTMDB === 'function') injecterRangeesTMDB(catalog);
 
-        const btnRight = document.createElement('button');
-        btnRight.className = 'carousel-arrow right';
-        btnRight.innerHTML = '›';
-        btnRight.onclick = () => flexContainer.scrollBy({ left: flexContainer.clientWidth * 0.75, behavior: 'smooth' });
-
-        section.appendChild(btnLeft);
-        section.appendChild(btnRight);
-        catalog.appendChild(section);
-      }
-    });
+    // 3) Section Vidéos YouTube, une rangée par sous-catégorie
+    if (rangeesYoutube.length > 0) {
+      catalog.appendChild(creerTitreSection('Vidéos YouTube', 'btnVideos'));
+      rangeesYoutube.forEach(cat => catalog.appendChild(creerRangeeCarousel(cat.titre, cat.liste).section));
+    }
     return;
   }
 
@@ -702,14 +731,14 @@ function creerCartesHTMLInContainer(films, container) {
     const card = document.createElement('div');
     card.className = "movie-card";
     card.innerHTML = `
-      <div class="movie-poster-wrapper"><img src="${film.fond || film.affiche}" alt="${film.titre}" class="movie-poster">${(film.type === 'film' && typeof estVu === 'function' && estVu(film.id)) ? '<span class="seen-badge">✓ Vu</span>' : ''}</div>
+      <div class="movie-poster-wrapper"><img src="${film.fond || film.affiche}" alt="${escapeHtml(film.titre)}" class="movie-poster">${(film.type === 'film' && typeof estVu === 'function' && estVu(film.id)) ? '<span class="seen-badge">✓ Vu</span>' : ''}</div>
       <div class="movie-card-info">
-        <div class="movie-card-title">${film.titre}</div>
-        <div class="movie-card-author">${film.auteur || ''}</div>
+        <div class="movie-card-title">${escapeHtml(film.titre)}</div>
+        <div class="movie-card-author">${escapeHtml(film.auteur || '')}</div>
       </div>
       <div class="hover-card">
         <div class="hover-media-wrapper">
-          <img src="${film.fond || film.affiche}" alt="${film.titre}" class="hover-poster">
+          <img src="${film.fond || film.affiche}" alt="${escapeHtml(film.titre)}" class="hover-poster">
           ${film.fileUrl ? `<video class="hover-video" src="${film.fileUrl}" muted loop playsinline style="display:none;"></video>` : ''}
         </div>
         <div class="hover-body">
@@ -821,7 +850,9 @@ function openPlayer(film, contexteListe = []) {
       if (localVideoPlayer) localVideoPlayer.style.display = 'none';
       youtubeVideoPlayer.style.display = 'block';
       const currentOrigin = window.location.origin !== 'null' ? window.location.origin : '*';
-      youtubeVideoPlayer.src = `https://www.youtube.com/embed/${film.youtubeId}?autoplay=1&origin=${encodeURIComponent(currentOrigin)}`;
+      const reprise = (typeof positionReprise === 'function') ? positionReprise(film.id) : 0;
+      youtubeVideoPlayer.src = `https://www.youtube.com/embed/${film.youtubeId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(currentOrigin)}` + (reprise > 0 ? `&start=${reprise}` : '');
+      if (typeof suivreYoutube === 'function') suivreYoutube(film);
     }
     return;
   }
@@ -846,6 +877,7 @@ function openPlayer(film, contexteListe = []) {
       localVideoPlayer.src = film.fileUrl;
       localVideoPlayer.load();
       localVideoPlayer.play().catch(() => {});
+      if (typeof suivreLectureLocale === 'function') suivreLectureLocale(film);
     }
   }
 }
@@ -1048,6 +1080,7 @@ if (closeAudioBar) {
 const closePlayerBtn = document.getElementById('closePlayerBtn');
 if (closePlayerBtn) {
   closePlayerBtn.addEventListener('click', () => {
+    if (typeof arreterSuiviLecture === 'function') arreterSuiviLecture();
     if (localVideoPlayer) { localVideoPlayer.pause(); localVideoPlayer.src = ""; }
     if (youtubeVideoPlayer) { youtubeVideoPlayer.src = ""; }
     if (playerModal) playerModal.style.display = 'none';
@@ -2250,6 +2283,7 @@ async function verifierSessionEtChargerApp() {
       notifications = donnees.notifications || [];
       mesNotes      = donnees.notes || [];
       mesVus        = donnees.vus || [];
+      mesProgres    = donnees.progres || [];
     } else {
       listeFilms    = [...videosInitiales];
       mesPlaylists  = [];
@@ -2257,6 +2291,7 @@ async function verifierSessionEtChargerApp() {
       notifications = [];
       mesNotes      = [];
       mesVus        = [];
+      mesProgres    = [];
     }
 
     mettreAJourNotificationsUI();

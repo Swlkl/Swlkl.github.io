@@ -239,3 +239,10 @@
   .seen-poster { width: 64px; height: 96px; }
   .review-actions .btn-secondary, .review-actions .btn-play { flex: 1; }
 }
+
+/* --- ACCUEIL : sections et rangées (mobile) --- */
+@media screen and (max-width: 768px) {
+  .home-section-title { margin: 24px 0 4px; }
+  .home-section-title h2 { font-size: 1.3rem; }
+  .resume-remove { opacity: 1; }
+}

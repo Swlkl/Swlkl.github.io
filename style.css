@@ -1154,3 +1154,32 @@ body.music-playing .main-content { margin-right: 340px; }
 /* Bande-annonce en arrière-plan du hero */
 .hero-poster-container { overflow: hidden; }
 .hero-trailer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 0; pointer-events: none; }
+
+/* ==========================================================================
+   ACCUEIL : sections, rangées TMDB, « Continuer de voir »
+   ========================================================================== */
+.home-section-title {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin: 34px 0 6px; padding-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.home-section-title h2 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.5px; }
+.home-see-all { background: none; color: #a7a7a7; font-size: 0.9rem; font-weight: 600; padding: 4px 8px; }
+.home-see-all:hover { color: #fff; }
+
+.tmdb-row.loading { min-height: 170px; }
+.tmdb-row.loading .category-row-title { opacity: 0.6; }
+
+.tmdb-genre {
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); color: #e5e5e5;
+  font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; outline: none; cursor: pointer;
+}
+.tmdb-genre option { background: #1f1f1f; color: #fff; }
+
+.resume-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255, 255, 255, 0.25); z-index: 2; }
+.resume-bar span { display: block; height: 100%; background: #e50914; }
+.resume-remove {
+  position: absolute; top: 8px; right: 8px; z-index: 3; width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7); color: #fff; font-size: 0.8rem; opacity: 0; transition: opacity 0.2s ease;
+}
+.movie-card:hover .resume-remove { opacity: 1; }
+.resume-remove:hover { background: rgba(229, 9, 20, 0.9); }

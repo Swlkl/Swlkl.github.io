@@ -14,6 +14,28 @@ const AFFICHE_VIDE = "data:image/svg+xml;utf8," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450"><rect width="100%" height="100%" fill="#2a2a2a"/><text x="50%" y="50%" fill="#777" font-family="Arial" font-size="20" text-anchor="middle">Pas d\'affiche</text></svg>'
 );
 
+// Rangées affichées sur l'accueil (dans l'ordre). Tu peux en retirer, en ajouter ou les réordonner.
+// Genres : 28 Action, 12 Aventure, 27 Horreur, 35 Comédie, 878 Science-fiction, 16 Animation,
+//          53 Thriller, 10749 Romance, 18 Drame, 14 Fantastique, 80 Crime, 99 Documentaire, 10751 Famille.
+// Plateformes (watch provider) : 8 Netflix, 119 Prime Video, 337 Disney+, 381 Canal+, 350 Apple TV+.
+const GENRE_PARAMS = { sort_by: 'popularity.desc', 'vote_count.gte': 200 };
+const PLATEFORME_PARAMS = { sort_by: 'popularity.desc', watch_region: 'FR', with_watch_monetization_types: 'flatrate' };
+const RANGEES_ACCUEIL = [
+  { titre: 'Tendances cette semaine',     chemin: '/trending/movie/week' },
+  { titre: 'À l\'affiche au cinéma',      chemin: '/movie/now_playing', params: { region: 'FR' } },
+  { titre: 'Action',                      chemin: '/discover/movie', params: { ...GENRE_PARAMS, with_genres: 28 } },
+  { titre: 'Horreur',                     chemin: '/discover/movie', params: { ...GENRE_PARAMS, with_genres: 27 } },
+  { titre: 'Aventure',                    chemin: '/discover/movie', params: { ...GENRE_PARAMS, with_genres: 12 } },
+  { titre: 'Comédie',                     chemin: '/discover/movie', params: { ...GENRE_PARAMS, with_genres: 35 } },
+  { titre: 'Science-fiction',             chemin: '/discover/movie', params: { ...GENRE_PARAMS, with_genres: 878 } },
+  { titre: 'Animation',                   chemin: '/discover/movie', params: { ...GENRE_PARAMS, with_genres: 16 } },
+  { titre: 'Thriller',                    chemin: '/discover/movie', params: { ...GENRE_PARAMS, with_genres: 53 } },
+  { titre: 'Disponibles sur Netflix',     chemin: '/discover/movie', params: { ...PLATEFORME_PARAMS, with_watch_providers: 8 } },
+  { titre: 'Disponibles sur Prime Video', chemin: '/discover/movie', params: { ...PLATEFORME_PARAMS, with_watch_providers: 119 } },
+  { titre: 'Disponibles sur Disney+',     chemin: '/discover/movie', params: { ...PLATEFORME_PARAMS, with_watch_providers: 337 } },
+  { titre: 'Les mieux notés',             chemin: '/movie/top_rated' }
+];
+
 const TMDB_GENRES = {
   28: 'Action', 12: 'Aventure', 16: 'Animation', 35: 'Comédie', 80: 'Crime', 99: 'Documentaire',
   18: 'Drame', 10751: 'Famille', 14: 'Fantastique', 36: 'Histoire', 27: 'Horreur', 10402: 'Musique',
@@ -40,15 +62,23 @@ function afficherToast(message) {
   }, 3000);
 }
 
+const cacheTmdb = new Map();
+const DUREE_CACHE_TMDB = 30 * 60 * 1000;
+
 async function tmdb(chemin, params = {}) {
   if (!TMDB_API_KEY) throw new Error('NO_KEY');
   const url = new URL(TMDB_API + chemin);
   url.searchParams.set('api_key', TMDB_API_KEY);
   url.searchParams.set('language', 'fr-FR');
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const cle = url.toString();
+  const enCache = cacheTmdb.get(cle);
+  if (enCache && Date.now() - enCache.t < DUREE_CACHE_TMDB) return enCache.data;
   const reponse = await fetch(url);
   if (!reponse.ok) throw new Error('TMDB ' + reponse.status);
-  return reponse.json();
+  const data = await reponse.json();
+  cacheTmdb.set(cle, { t: Date.now(), data });
+  return data;
 }
 
 // Convertit un résultat TMDB en objet "film" compatible avec le reste du site
@@ -350,6 +380,10 @@ function injecterDecouverteFilms(conteneur) {
       <button type="button" class="tmdb-chip active" data-mode="popular">Populaires</button>
       <button type="button" class="tmdb-chip" data-mode="now_playing">À l'affiche</button>
       <button type="button" class="tmdb-chip" data-mode="top_rated">Mieux notés</button>
+      <select class="tmdb-genre" aria-label="Genre">
+        <option value="">Tous les genres</option>
+        ${Object.entries(TMDB_GENRES).map(([id, nom]) => `<option value="${id}">${nom}</option>`).join('')}
+      </select>
     </div>
     <div class="tmdb-grid"></div>
     <div class="tmdb-more-wrap"><button type="button" class="btn-secondary tmdb-more" style="display:none;">Voir plus</button></div>
@@ -361,7 +395,8 @@ function injecterDecouverteFilms(conteneur) {
   const champ = section.querySelector('.tmdb-search');
   const btnPlus = section.querySelector('.tmdb-more');
   const chips = section.querySelectorAll('.tmdb-chip');
-  let mode = 'popular', requete = '', page = 1, totalPages = 1, jeton = 0;
+  const selectGenre = section.querySelector('.tmdb-genre');
+  let mode = 'popular', requete = '', genre = '', page = 1, totalPages = 1, jeton = 0;
 
   const creerCarte = (m) => {
     const film = tmdbVersFilm(m);
@@ -405,7 +440,9 @@ function injecterDecouverteFilms(conteneur) {
     try {
       const data = requete
         ? await tmdb('/search/movie', { query: requete, page, include_adult: 'false' })
-        : await tmdb('/movie/' + mode, { page, region: 'FR' });
+        : genre
+          ? await tmdb('/discover/movie', { ...GENRE_PARAMS, with_genres: genre, page })
+          : await tmdb('/movie/' + mode, { page, region: 'FR' });
       if (monJeton !== jeton) return;                 // une requête plus récente a pris le relais
       if (reinitialiser) grille.innerHTML = '';
       totalPages = data.total_pages || 1;
@@ -421,7 +458,7 @@ function injecterDecouverteFilms(conteneur) {
   chips.forEach(chip => chip.addEventListener('click', () => {
     chips.forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
-    mode = chip.dataset.mode; requete = ''; champ.value = '';
+    mode = chip.dataset.mode; requete = ''; genre = ''; champ.value = ''; selectGenre.value = '';
     charger(true);
   }));
 
@@ -430,9 +467,16 @@ function injecterDecouverteFilms(conteneur) {
     clearTimeout(minuterie);
     minuterie = setTimeout(() => {
       requete = champ.value.trim();
-      chips.forEach(c => c.classList.toggle('active', !requete && c.dataset.mode === mode));
+      if (requete) { genre = ''; selectGenre.value = ''; }
+      chips.forEach(c => c.classList.toggle('active', !requete && !genre && c.dataset.mode === mode));
       charger(true);
     }, 400);
+  });
+
+  selectGenre.addEventListener('change', () => {
+    genre = selectGenre.value; requete = ''; champ.value = '';
+    chips.forEach(c => c.classList.toggle('active', !genre && c.dataset.mode === mode));
+    charger(true);
   });
 
   btnPlus.addEventListener('click', () => { page++; charger(false); });
@@ -506,3 +550,205 @@ if (btnOpenSeenModal) {
 const closeSeenBtn = document.getElementById('closeSeenBtn');
 if (closeSeenBtn) closeSeenBtn.addEventListener('click', () => { seenModal.style.display = 'none'; });
 if (seenModal) seenModal.addEventListener('click', (e) => { if (e.target === seenModal) seenModal.style.display = 'none'; });
+
+
+// ==========================================================================
+// ACCUEIL : rangées TMDB (genres, plateformes...) chargées au fil du défilement
+// ==========================================================================
+let observateurRangees = null;
+
+function injecterRangeesTMDB(conteneur) {
+  if (observateurRangees) observateurRangees.disconnect();
+  if (!TMDB_API_KEY) {
+    const info = document.createElement('p');
+    info.className = 'empty-msg';
+    info.innerHTML = 'Ajoute ta clé TMDB dans <code>films.js</code> pour voir les rangées Action, Horreur, Aventure, Netflix…';
+    conteneur.appendChild(info);
+    return;
+  }
+  observateurRangees = new IntersectionObserver((entrees) => {
+    entrees.forEach(e => {
+      if (!e.isIntersecting) return;
+      observateurRangees.unobserve(e.target);
+      chargerRangeeTMDB(e.target);
+    });
+  }, { rootMargin: '400px 0px' });
+
+  RANGEES_ACCUEIL.forEach(def => {
+    const { section } = creerRangeeCarousel(def.titre);
+    section.classList.add('tmdb-row', 'loading');
+    section._def = def;
+    conteneur.appendChild(section);
+    observateurRangees.observe(section);
+  });
+}
+
+async function chargerRangeeTMDB(section) {
+  const def = section._def;
+  try {
+    const data = await tmdb(def.chemin, def.params || {});
+    if (!section.isConnected) return;                    // l'utilisateur a changé d'onglet
+    const films = (data.results || [])
+      .filter(m => m.backdrop_path && m.poster_path)
+      .map(m => { const f = tmdbVersFilm(m); return filmDeBibliotheque(f) || f; });
+    if (!films.length) { section.remove(); return; }
+    creerCartesHTMLInContainer(films, section.querySelector('.category-flex-container'));
+    section.classList.remove('loading');
+  } catch (e) {
+    section.remove();
+  }
+}
+
+// ==========================================================================
+// CONTINUER DE VOIR : suivi de la progression (fichiers locaux + vidéos YouTube)
+// ==========================================================================
+let suiviActif = null;          // { film, mesurer() -> {pos, dur} }
+let minuterieSuivi = null;
+let jetonSuivi = 0;
+let progresModifie = false;
+let ticsSuivi = 0;
+
+function positionReprise(filmId) {
+  const p = mesProgres.find(x => x.id === filmId);
+  return p ? Math.max(0, Math.floor(p.pos) - 2) : 0;   // on recule de 2 s pour se remettre dans le bain
+}
+
+function enregistrerProgres(film, pos, dur, flush) {
+  if (!isFinite(pos) || !isFinite(dur) || dur <= 0) return;
+  const i = mesProgres.findIndex(p => p.id === film.id);
+  if (pos / dur >= 0.95) {                              // terminé : il sort de « Continuer de voir »
+    if (i > -1) mesProgres.splice(i, 1); else return;
+  } else if (pos >= 10) {                               // moins de 10 s : on ne retient pas
+    const entree = { id: film.id, pos: Math.floor(pos), dur: Math.floor(dur), date: new Date().toISOString() };
+    if (i > -1) mesProgres[i] = entree; else mesProgres.push(entree);
+  } else return;
+  progresModifie = true;
+  if (flush) envoyerProgres();
+}
+
+async function envoyerProgres() {
+  if (!progresModifie) return;
+  progresModifie = false;
+  try { await sauvegarderDonneesCloud(); } catch (e) { progresModifie = true; }
+}
+
+function demarrerSuivi(film, mesurer) {
+  arreterSuiviLecture();
+  suiviActif = { film, mesurer };
+  const monJeton = ++jetonSuivi;
+  ticsSuivi = 0;
+  minuterieSuivi = setInterval(() => {
+    if (!suiviActif || monJeton !== jetonSuivi) return;
+    const m = mesurer();
+    if (m) enregistrerProgres(film, m.pos, m.dur, false);
+    if (++ticsSuivi % 6 === 0) envoyerProgres();         // envoi au cloud toutes les ~30 s
+  }, 5000);
+  return monJeton;
+}
+
+function arreterSuiviLecture() {
+  clearInterval(minuterieSuivi);
+  if (!suiviActif) return;
+  const { film, mesurer } = suiviActif;
+  suiviActif = null;
+  jetonSuivi++;
+  try { const m = mesurer(); if (m) enregistrerProgres(film, m.pos, m.dur, false); } catch (e) { /* lecteur déjà fermé */ }
+  envoyerProgres();
+}
+
+// Fichier local (.mp4)
+function suivreLectureLocale(film) {
+  const reprise = positionReprise(film.id);
+  localVideoPlayer.addEventListener('loadedmetadata', () => {
+    if (reprise > 0 && reprise < localVideoPlayer.duration - 5) localVideoPlayer.currentTime = reprise;
+  }, { once: true });
+  demarrerSuivi(film, () => ({ pos: localVideoPlayer.currentTime, dur: localVideoPlayer.duration }));
+  localVideoPlayer.onpause = () => {
+    if (!suiviActif || localVideoPlayer.ended) return;
+    enregistrerProgres(film, localVideoPlayer.currentTime, localVideoPlayer.duration, true);
+  };
+}
+
+// Vidéo YouTube (API IFrame du lecteur)
+let apiYoutubePrete = null;
+function chargerApiYoutube() {
+  if (window.YT && window.YT.Player) return Promise.resolve();
+  if (!apiYoutubePrete) {
+    apiYoutubePrete = new Promise(resolve => {
+      const precedent = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (precedent) precedent(); resolve(); };
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(script);
+    });
+  }
+  return apiYoutubePrete;
+}
+
+async function suivreYoutube(film) {
+  let lecteur = null;
+  const monJeton = demarrerSuivi(film, () => {
+    if (!lecteur || typeof lecteur.getCurrentTime !== 'function') return null;
+    return { pos: lecteur.getCurrentTime(), dur: lecteur.getDuration() };
+  });
+  try {
+    await chargerApiYoutube();
+    if (monJeton !== jetonSuivi) return;                  // lecteur fermé entre-temps
+    lecteur = new YT.Player('youtubeVideoPlayer', {
+      events: {
+        onStateChange: (e) => {
+          if (monJeton !== jetonSuivi) return;
+          if (e.data === 2) enregistrerProgres(film, lecteur.getCurrentTime(), lecteur.getDuration(), true);   // pause
+          if (e.data === 0) enregistrerProgres(film, lecteur.getDuration(), lecteur.getDuration(), true);      // fin
+        }
+      }
+    });
+  } catch (e) { /* sans l'API, la vidéo se lit quand même (sans suivi) */ }
+}
+
+// On enregistre aussi quand l'onglet est fermé ou mis en arrière-plan
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'hidden' || !suiviActif) return;
+  const m = suiviActif.mesurer();
+  if (m) enregistrerProgres(suiviActif.film, m.pos, m.dur, true);
+});
+
+// ---- Rangée « Continuer de voir »
+function rangeeContinuerDeVoir(conteneur) {
+  const elements = mesProgres
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .map(p => ({ p, film: listeFilms.find(f => f.id === p.id) }))
+    .filter(x => x.film);
+  if (!elements.length) return;
+
+  const { section, flex } = creerRangeeCarousel('Continuer de voir', elements.map(x => x.film));
+  section.classList.add('resume-row');
+
+  Array.from(flex.children).forEach((carte, i) => {
+    const { p, film } = elements[i];
+    const pourcent = Math.min(100, Math.max(3, Math.round((p.pos / p.dur) * 100)));
+    const reste = Math.max(1, Math.round((p.dur - p.pos) / 60));
+
+    const poster = carte.querySelector('.movie-poster-wrapper');
+    poster.insertAdjacentHTML('beforeend',
+      `<div class="resume-bar"><span style="width:${pourcent}%"></span></div>
+       <button type="button" class="resume-remove" title="Retirer de « Continuer de voir »">✕</button>`);
+
+    const auteur = carte.querySelector('.movie-card-author');
+    if (auteur) auteur.textContent = `Il reste ${reste} min`;
+    const btnJouer = carte.querySelector('.btn-play-trigger');
+    if (btnJouer) btnJouer.textContent = '▶ Reprendre';
+
+    poster.querySelector('.resume-remove').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      mesProgres = mesProgres.filter(x => x.id !== film.id);
+      progresModifie = true;
+      carte.remove();
+      if (!flex.children.length) section.remove();
+      await envoyerProgres();
+    });
+  });
+
+  conteneur.appendChild(section);
+}
