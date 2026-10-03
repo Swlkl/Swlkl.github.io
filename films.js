@@ -6,7 +6,7 @@
 
 // 1) Crée un compte gratuit sur https://www.themoviedb.org, puis colle ici ta
 //    « Clé API (v3) » : Paramètres > API.
-const TMDB_API_KEY = '';
+const TMDB_API_KEY = '998217006d3ad42387ae8b25dcaa8f6e';
 
 const TMDB_API = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/';
