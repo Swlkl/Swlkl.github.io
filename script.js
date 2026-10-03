@@ -337,13 +337,14 @@ function chargerContenuHero(index) {
     heroVideo.pause();
     heroVideo.style.display = 'none';
   }
+  if (typeof arreterBandeAnnonceHero === 'function') arreterBandeAnnonceHero();
   if (heroPoster) heroPoster.style.display = 'block';
 
   if (heroCategoryBadge) {
     heroCategoryBadge.textContent = (item.genre || traduireType(item.type)).toUpperCase();
   }
 
-  if (heroPoster) heroPoster.src = item.affiche;
+  if (heroPoster) heroPoster.src = item.fond || item.affiche;
   document.getElementById('heroTitle').textContent = item.titre;
   document.getElementById('heroDescription').textContent = item.description || "Aucune description disponible.";
 
@@ -364,7 +365,10 @@ function chargerContenuHero(index) {
 
   const btnPlay = document.getElementById('heroPlayBtn');
   const btnInfo = document.getElementById('heroInfoBtn');
-  if (btnPlay) btnPlay.onclick = () => openPlayer(item, listeFilms);
+  if (btnPlay) {
+    btnPlay.textContent = (!item.fileUrl && item.tmdbId) ? '▶ Bande-annonce' : '▶ Lecture';
+    btnPlay.onclick = () => openPlayer(item, listeFilms);
+  }
   if (btnInfo) btnInfo.onclick = () => ouvrirPanneauDetails(item);
 
   const dots = document.querySelectorAll('.hero-dot');
@@ -372,6 +376,10 @@ function chargerContenuHero(index) {
     if (idx === index) dot.classList.add('active');
     else dot.classList.remove('active');
   });
+
+  if (item.tmdbId && !item.fileUrl && typeof lancerBandeAnnonceHero === 'function') {
+    heroTimer = setTimeout(() => lancerBandeAnnonceHero(item, index), 1200);
+  }
 
   if (heroVideo && item.fileUrl) {
     heroTimer = setTimeout(() => {
@@ -694,14 +702,14 @@ function creerCartesHTMLInContainer(films, container) {
     const card = document.createElement('div');
     card.className = "movie-card";
     card.innerHTML = `
-      <div class="movie-poster-wrapper"><img src="${film.affiche}" alt="${film.titre}" class="movie-poster">${(film.type === 'film' && typeof estVu === 'function' && estVu(film.id)) ? '<span class="seen-badge">✓ Vu</span>' : ''}</div>
+      <div class="movie-poster-wrapper"><img src="${film.fond || film.affiche}" alt="${film.titre}" class="movie-poster">${(film.type === 'film' && typeof estVu === 'function' && estVu(film.id)) ? '<span class="seen-badge">✓ Vu</span>' : ''}</div>
       <div class="movie-card-info">
         <div class="movie-card-title">${film.titre}</div>
         <div class="movie-card-author">${film.auteur || ''}</div>
       </div>
       <div class="hover-card">
         <div class="hover-media-wrapper">
-          <img src="${film.affiche}" alt="${film.titre}" class="hover-poster">
+          <img src="${film.fond || film.affiche}" alt="${film.titre}" class="hover-poster">
           ${film.fileUrl ? `<video class="hover-video" src="${film.fileUrl}" muted loop playsinline style="display:none;"></video>` : ''}
         </div>
         <div class="hover-body">
@@ -890,7 +898,7 @@ function ouvrirPanneauDetails(film) {
   if (detailsDuration) detailsDuration.textContent = formaterDuree(film.duree);
   if (detailsDescription) detailsDescription.textContent = film.description || "Aucune description disponible.";
   
-  if (detailsPanel && film.affiche) detailsPanel.style.backgroundImage = `url('${film.affiche}')`;
+  if (detailsPanel && (film.fond || film.affiche)) detailsPanel.style.backgroundImage = `url('${film.fond || film.affiche}')`;
   else if (detailsPanel) detailsPanel.style.backgroundImage = 'none';
 
   const detailsPlayBtn   = document.getElementById('detailsPlayBtn');

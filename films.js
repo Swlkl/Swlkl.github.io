@@ -6,7 +6,7 @@
 
 // 1) Crée un compte gratuit sur https://www.themoviedb.org, puis colle ici ta
 //    « Clé API (v3) » : Paramètres > API.
-const TMDB_API_KEY = '998217006d3ad42387ae8b25dcaa8f6e';
+const TMDB_API_KEY = '';
 
 const TMDB_API = 'https://api.themoviedb.org/3';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/';
@@ -62,6 +62,7 @@ function tmdbVersFilm(m) {
     duree: m.runtime || 0,
     description: m.overview || '',
     affiche: m.poster_path ? TMDB_IMG + 'w500' + m.poster_path : AFFICHE_VIDE,
+    fond: m.backdrop_path ? TMDB_IMG + 'w1280' + m.backdrop_path : '',   // image 16:9 pour le hero et les cartes
     fileUrl: '',
     dateSortie: (m.release_date || '').slice(0, 4),
     source: 'tmdb',
@@ -248,23 +249,68 @@ async function chargerFournisseurs(tmdbId, conteneur) {
 }
 
 // ------------------------------------------------------------ bande-annonce
+// Retourne la clé YouTube de la bande-annonce (français d'abord, puis anglais)
+async function trouverCleBandeAnnonce(film) {
+  if (film.trailerKey) return film.trailerKey;
+  const trouver = (data) => (data.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer')
+    || (data.results || []).find(v => v.site === 'YouTube');
+  let video = trouver(await tmdb(`/movie/${film.tmdbId}/videos`));
+  if (!video) video = trouver(await tmdb(`/movie/${film.tmdbId}/videos`, { language: 'en-US' }));
+  if (video) film.trailerKey = video.key;       // mémorisé pour éviter de refaire la requête
+  return video ? video.key : null;
+}
+
 async function ouvrirBandeAnnonce(film) {
   try {
-    const trouver = (data) => (data.results || []).find(v => v.site === 'YouTube' && v.type === 'Trailer')
-      || (data.results || []).find(v => v.site === 'YouTube');
-    let video = trouver(await tmdb(`/movie/${film.tmdbId}/videos`));
-    if (!video) video = trouver(await tmdb(`/movie/${film.tmdbId}/videos`, { language: 'en-US' }));
-    if (!video) { afficherToast('Aucune bande-annonce disponible'); return; }
-
+    const cle = await trouverCleBandeAnnonce(film);
+    if (!cle) { afficherToast('Aucune bande-annonce disponible'); return; }
     playerModal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     if (localVideoPlayer) localVideoPlayer.style.display = 'none';
     youtubeVideoPlayer.style.display = 'block';
     const origine = window.location.origin !== 'null' ? window.location.origin : '*';
-    youtubeVideoPlayer.src = `https://www.youtube.com/embed/${video.key}?autoplay=1&origin=${encodeURIComponent(origine)}`;
+    youtubeVideoPlayer.src = `https://www.youtube.com/embed/${cle}?autoplay=1&origin=${encodeURIComponent(origine)}`;
   } catch (e) {
     afficherToast(e.message === 'NO_KEY' ? 'Clé TMDB manquante (voir films.js)' : 'Bande-annonce indisponible');
   }
+}
+
+// ---- Bande-annonce muette en arrière-plan de la bannière « hero »
+function ajusterTrailerHero() {
+  const frame = document.getElementById('heroTrailer');
+  const zone = frame && frame.parentElement;
+  if (!frame || !zone || !zone.clientWidth) return;
+  const w = zone.clientWidth, h = zone.clientHeight, ratio = 16 / 9;
+  // La vidéo 16:9 doit recouvrir toute la bannière (comme object-fit: cover)
+  if (w / h >= ratio) { frame.style.width = w + 'px'; frame.style.height = (w / ratio) + 'px'; }
+  else { frame.style.height = h + 'px'; frame.style.width = (h * ratio) + 'px'; }
+}
+window.addEventListener('resize', ajusterTrailerHero);
+
+function arreterBandeAnnonceHero() {
+  const frame = document.getElementById('heroTrailer');
+  if (!frame) return;
+  frame.style.display = 'none';
+  frame.removeAttribute('src');
+}
+
+async function lancerBandeAnnonceHero(film, index) {
+  const frame = document.getElementById('heroTrailer');
+  const poster = document.getElementById('heroPoster');
+  if (!frame || !TMDB_API_KEY) return;
+  try {
+    const cle = await trouverCleBandeAnnonce(film);
+    if (!cle || index !== heroCurrentIndex) return;   // l'utilisateur a changé de slide entre-temps
+    if (document.getElementById('heroBanner').style.display === 'none') return;
+    ajusterTrailerHero();
+    frame.src = `https://www.youtube.com/embed/${cle}?autoplay=1&mute=1&controls=0&loop=1&playlist=${cle}`
+      + '&modestbranding=1&rel=0&playsinline=1&disablekb=1&iv_load_policy=3';
+    frame.onload = () => {
+      if (index !== heroCurrentIndex) return;
+      frame.style.display = 'block';
+      if (poster) poster.style.display = 'none';
+    };
+  } catch (e) { /* on garde simplement l'image */ }
 }
 
 // Fin d'un film (fichier local) : marqué comme vu + invitation à donner son avis

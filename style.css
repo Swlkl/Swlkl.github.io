@@ -1150,3 +1150,7 @@ body.music-playing .main-content { margin-right: 340px; }
 .seen-comment.empty { color: #666; font-style: italic; }
 .seen-actions { display: flex; gap: 8px; margin-top: 10px; }
 .seen-actions .btn-secondary { padding: 6px 12px; font-size: 0.78rem; }
+
+/* Bande-annonce en arrière-plan du hero */
+.hero-poster-container { overflow: hidden; }
+.hero-trailer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 0; pointer-events: none; }
