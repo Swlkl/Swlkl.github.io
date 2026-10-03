@@ -54,25 +54,6 @@
     border-radius: 20px;
   }
 
-  .auth-card {
-    width: 85%;
-  }
-
-  .details-panel-container, .modal, .player-modal{
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    overflow-y: auto; /* Permet de scroller si la modale est plus grande que l'écran */
-    padding: 20px 0;   /* Évite que la modale soit collée tout en haut/bas */
-  }
-
   .topbar {
     position: fixed;
     top: 0;
@@ -155,6 +136,38 @@
     flex-shrink: 0;
   }
 
+  .auth-card {
+    width: 5%;
+  }
+
+  .details-panel-container, .modal, .player-modal{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    overflow-y: auto; /* Permet de scroller si la modale est plus grande que l'écran */
+    padding: 20px 0;   /* Évite que la modale soit collée tout en haut/bas */
+  }
+
+  .user-pseudo-label {
+    display: none; /* Masque le pseudo complet sur mobile pour gagner de l'espace */
+  }
+
+  .user-dropdown-menu {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: calc(100vw - 20px);
+  }
+
   .nav-item.active {
     background-color: #ffffff !important;
     color: #000000 !important;
@@ -215,4 +228,14 @@
   .hero-banner {
     height: 50vh;
   }
+}
+/* --- FILMS : catalogue TMDB, avis, films vus (mobile) --- */
+@media screen and (max-width: 768px) {
+  .details-panel-container { align-items: flex-start; }
+  .details-overlay { padding-top: 160px; }
+  .tmdb-search { width: 100%; min-width: 0; }
+  .tmdb-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .seen-modal-content { padding: 20px; }
+  .seen-poster { width: 64px; height: 96px; }
+  .review-actions .btn-secondary, .review-actions .btn-play { flex: 1; }
 }

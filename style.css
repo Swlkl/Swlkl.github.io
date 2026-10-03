@@ -1068,3 +1068,85 @@ body.music-playing .main-content { margin-right: 340px; }
   border-radius: 4px;
   transition: ease 0.25s;
 }
+/* ==========================================================================
+   FILMS : catalogue TMDB, avis, films vus
+   ========================================================================== */
+.details-panel-container { overflow-y: auto; align-items: flex-start; }
+.details-panel { margin: auto; }
+
+.seen-badge {
+  position: absolute; top: 8px; left: 8px; background: rgba(0, 0, 0, 0.75); color: #46d369;
+  font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; z-index: 2;
+}
+
+/* Section « Découvrir » */
+.tmdb-section { margin-bottom: 10px; }
+.tmdb-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.tmdb-head .category-row-title { margin-bottom: 0; }
+.tmdb-search {
+  background: #2a2a2a; border: 1px solid #333; color: #fff; padding: 8px 14px;
+  border-radius: 20px; outline: none; min-width: 220px; font-size: 0.9rem;
+}
+.tmdb-search:focus { border-color: #666; }
+.tmdb-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tmdb-chip {
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); color: #e5e5e5;
+  font-size: 0.8rem; padding: 5px 14px; border-radius: 20px;
+}
+.tmdb-chip.active { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+.tmdb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+.tmdb-grid .empty-msg { grid-column: 1 / -1; }
+.tmdb-card { display: flex; flex-direction: column; min-width: 0; }
+.tmdb-poster { position: relative; aspect-ratio: 2 / 3; border-radius: 6px; overflow: hidden; cursor: pointer; background: #222; }
+.tmdb-poster img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s ease; }
+.tmdb-poster:hover img { transform: scale(1.04); }
+.tmdb-rating {
+  position: absolute; bottom: 6px; right: 6px; background: rgba(0, 0, 0, 0.75); color: #ffd24a;
+  font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 4px;
+}
+.tmdb-title { font-size: 0.9rem; font-weight: 700; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tmdb-year { font-size: 0.78rem; color: #a7a7a7; margin: 2px 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tmdb-add {
+  margin-top: auto; background: rgba(109, 109, 110, 0.7); color: #fff; font-size: 0.8rem; font-weight: 600;
+  padding: 7px 8px; border-radius: 4px;
+}
+.tmdb-add:hover { background: rgba(140, 140, 141, 0.8); }
+.tmdb-add.on { background: #fff; color: #000; }
+.tmdb-add:disabled { opacity: 0.6; cursor: wait; }
+.tmdb-more-wrap { text-align: center; margin: 18px 0 6px; }
+.tmdb-credit { font-size: 0.7rem; color: #777; text-align: center; margin-top: 10px; }
+.tmdb-library-title { margin-top: 28px; }
+.tmdb-section code { background: #2a2a2a; padding: 1px 6px; border-radius: 4px; font-size: 0.85em; }
+
+/* Panneau de détails : offres + avis */
+.details-providers { margin-top: 16px; font-size: 0.85rem; color: #ccc; display: flex; flex-direction: column; gap: 4px; }
+.details-providers:empty { display: none; }
+.details-providers a { color: #fff; text-decoration: underline; }
+.providers-loading, .providers-credit { color: #777; font-size: 0.72rem; }
+
+.review-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+.review-title { font-weight: 700; margin-bottom: 8px; }
+.review-stars { display: flex; gap: 2px; margin-bottom: 10px; }
+.review-stars button { background: none; font-size: 1.8rem; line-height: 1; color: #555; padding: 0 2px; transition: transform 0.1s ease; }
+.review-stars button:hover { transform: scale(1.15); }
+.review-stars button.on { color: #ffd24a; }
+.review-box textarea {
+  width: 100%; background: #2a2a2a; border: 1px solid #333; color: #fff; padding: 10px;
+  border-radius: 4px; outline: none; resize: vertical; font-family: inherit; font-size: 0.9rem;
+}
+.review-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+/* Modale « Mes films vus » */
+.seen-modal-content { width: 640px; max-height: 85vh; overflow-y: auto; }
+.seen-modal-content h2 { margin-bottom: 4px; }
+.seen-summary { color: #a7a7a7; font-size: 0.85rem; margin-bottom: 16px; }
+.seen-item { display: flex; gap: 14px; padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.seen-poster { width: 80px; height: 120px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #222; }
+.seen-info { min-width: 0; flex: 1; }
+.seen-title { font-weight: 700; }
+.seen-meta { font-size: 0.8rem; color: #a7a7a7; margin: 3px 0 6px; }
+.seen-stars { color: #ffd24a; letter-spacing: 1px; }
+.seen-comment { font-size: 0.88rem; color: #ddd; white-space: pre-wrap; overflow-wrap: anywhere; }
+.seen-comment.empty { color: #666; font-style: italic; }
+.seen-actions { display: flex; gap: 8px; margin-top: 10px; }
+.seen-actions .btn-secondary { padding: 6px 12px; font-size: 0.78rem; }

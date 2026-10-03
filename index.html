@@ -87,6 +87,7 @@
               </div>
             </div>
             <div class="user-dropdown-divider"></div>
+            <button class="user-dropdown-item" id="btnOpenSeenModal">🎬 Mes films vus</button>
             <button class="user-dropdown-item" id="btnOpenProfileModal">Modifier le profil</button>
             <button class="user-dropdown-item logout" id="BtnUserLogout">Déconnexion</button>
           </div>
@@ -218,8 +219,38 @@
               <button class="btn-secondary" id="detailsAddBtn">+ Ma Liste</button>
               <button class="btn-danger" id="detailsDeleteBtn">🗑 Supprimer</button>
             </div>
+
+            <!-- Où regarder légalement (données TMDB / JustWatch) -->
+            <div class="details-providers" id="detailsProviders"></div>
+
+            <!-- Mon avis : vu, note, commentaire -->
+            <div class="review-box" id="reviewBox" style="display: none;">
+              <div class="review-title">Mon avis</div>
+              <div class="review-stars" id="reviewStars">
+                <button type="button" data-v="1" aria-label="1 étoile">★</button>
+                <button type="button" data-v="2" aria-label="2 étoiles">★</button>
+                <button type="button" data-v="3" aria-label="3 étoiles">★</button>
+                <button type="button" data-v="4" aria-label="4 étoiles">★</button>
+                <button type="button" data-v="5" aria-label="5 étoiles">★</button>
+              </div>
+              <textarea id="reviewComment" rows="3" maxlength="1000" placeholder="Ton commentaire sur ce film..."></textarea>
+              <div class="review-actions">
+                <button type="button" class="btn-secondary" id="btnToggleVu">👁 Marquer comme vu</button>
+                <button type="button" class="btn-play" id="btnSaveReview">Enregistrer mon avis</button>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- MODAL : MES FILMS VUS -->
+    <div class="modal" id="seenModal" style="display: none;">
+      <div class="modal-content seen-modal-content">
+        <span class="close-modal" id="closeSeenBtn">&times;</span>
+        <h2>Mes films vus</h2>
+        <p class="seen-summary" id="seenSummary"></p>
+        <div id="seenList"></div>
       </div>
     </div>
 
@@ -440,10 +471,23 @@
       </div>
     </aside>
 
+    <!-- MODAL DE CONFIRMATION DE SUPPRESSION DE NOTE -->
+    <div class="modal" id="confirm-modal" style="display: none;">
+      <div class="modal-content" style="max-width: 350px; text-align: center;">
+        <h3>Confirmation</h3>
+        <p style="margin: 15px 0;">Voulez-vous vraiment supprimer ce document ?</p>
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn-secondary" id="btn-modal-cancel">Annuler</button>
+          <button type="button" class="btn-danger" id="btn-modal-confirm">Supprimer</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
   <script src="script.js"></script>
+  <script src="films.js"></script>
 </body>
 </html>

@@ -24,6 +24,8 @@ let mesPlaylists  = [];
 let maListe       = [];
 let notifications = [];
 let mesNotes      = [];
+let mesVus        = []; // [{ filmId, date, note (0-5), commentaire }]
+let filmEnCours   = null; // film actuellement lu dans le lecteur
 
 let filmSelectionneDetails = null;
 let playlistMusiqueEnCours = [];
@@ -73,7 +75,8 @@ async function chargerDonneesCloud() {
       playlists: JSON.parse(localStorage.getItem('mesPlaylistsMusic')) || [],
       maListe: JSON.parse(localStorage.getItem('maListeNetflix')) || [],
       notifications: JSON.parse(localStorage.getItem('mesNotifications')) || [],
-      notes: JSON.parse(localStorage.getItem('mesNotesApp')) || []
+      notes: JSON.parse(localStorage.getItem('mesNotesApp')) || [],
+      vus: JSON.parse(localStorage.getItem('mesVusApp')) || []
     };
   }
 }
@@ -84,7 +87,8 @@ async function sauvegarderDonneesCloud() {
     playlists: mesPlaylists,
     maListe: maListe,
     notifications: notifications,
-    notes: mesNotes
+    notes: mesNotes,
+    vus: mesVus
   };
 
   localStorage.setItem('mesVideosNetflix', JSON.stringify(listeFilms));
@@ -92,6 +96,7 @@ async function sauvegarderDonneesCloud() {
   localStorage.setItem('maListeNetflix', JSON.stringify(maListe));
   localStorage.setItem('mesNotifications', JSON.stringify(notifications));
   localStorage.setItem('mesNotesApp', JSON.stringify(mesNotes));
+  localStorage.setItem('mesVusApp', JSON.stringify(mesVus));
 
   try {
     const { data: { session } } = await _supabase.auth.getSession();
@@ -587,9 +592,10 @@ function genererCatalogue(onglet) {
 
   if (onglet === 'film') {
     if (pageTitle) pageTitle.textContent = "Films";
+    if (typeof injecterDecouverteFilms === 'function') injecterDecouverteFilms(catalog);
     const filmsFiltres = filtrerEtTrier(listeFilms.filter(f => f.type === 'film'));
     if (filmsFiltres.length === 0) {
-      catalog.innerHTML += "<p class='empty-msg'>Aucun film correspondant.</p>";
+      catalog.insertAdjacentHTML('beforeend', "<p class='empty-msg'>Aucun film correspondant.</p>");
       return;
     }
     const gridContainer = document.createElement('div');
@@ -688,7 +694,7 @@ function creerCartesHTMLInContainer(films, container) {
     const card = document.createElement('div');
     card.className = "movie-card";
     card.innerHTML = `
-      <div class="movie-poster-wrapper"><img src="${film.affiche}" alt="${film.titre}" class="movie-poster"></div>
+      <div class="movie-poster-wrapper"><img src="${film.affiche}" alt="${film.titre}" class="movie-poster">${(film.type === 'film' && typeof estVu === 'function' && estVu(film.id)) ? '<span class="seen-badge">✓ Vu</span>' : ''}</div>
       <div class="movie-card-info">
         <div class="movie-card-title">${film.titre}</div>
         <div class="movie-card-author">${film.auteur || ''}</div>
@@ -703,6 +709,7 @@ function creerCartesHTMLInContainer(films, container) {
             <div class="hover-actions-left">
               <button class="btn-hover-play btn-play-trigger">▶ Jouer</button>
               <button class="btn-hover-circle btn-like-trigger">👍</button>
+              ${film.type === 'film' ? `<button class="btn-hover-circle btn-list-trigger" title="Je veux le voir">${maListe.includes(film.id) ? '✓' : '＋'}</button>` : ''}
             </div>
             <button class="btn-hover-circle btn-info-trigger">▼</button>
           </div>
@@ -735,6 +742,13 @@ function creerCartesHTMLInContainer(films, container) {
     });
 
     card.querySelector('.btn-play-trigger').addEventListener('click', (e) => { e.stopPropagation(); openPlayer(film, films); });
+    const btnListe = card.querySelector('.btn-list-trigger');
+    if (btnListe) btnListe.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const res = await basculerMaListe(film);
+      btnListe.textContent = res.dansListe ? '✓' : '＋';
+      afficherToast(res.dansListe ? 'Ajouté à ta liste : ' + film.titre : 'Retiré de ta liste');
+    });
     card.querySelector('.btn-info-trigger').addEventListener('click', (e) => { e.stopPropagation(); ouvrirPanneauDetails(film); });
     card.addEventListener('click', () => openPlayer(film, films));
     container.appendChild(card);
@@ -813,6 +827,8 @@ function openPlayer(film, contexteListe = []) {
   }
 
   if (film.type === 'film') {
+    filmEnCours = film;
+    if (!film.fileUrl && film.tmdbId && typeof ouvrirBandeAnnonce === 'function') { ouvrirBandeAnnonce(film); return; }
     if (localAudioPlayer) { localAudioPlayer.pause(); if (audioBtnPlayPause) audioBtnPlayPause.textContent = "▶"; }
     if (playerModal && localVideoPlayer) {
       playerModal.style.display = 'flex';
@@ -910,6 +926,7 @@ function ouvrirPanneauDetails(film) {
       }
     };
   }
+  if (typeof majBlocAvis === 'function') majBlocAvis(film);
   if (detailsPanelContainer) detailsPanelContainer.style.display = "flex";
   document.body.style.overflow = "hidden";
 }
@@ -2224,12 +2241,14 @@ async function verifierSessionEtChargerApp() {
       maListe       = donnees.maListe || [];
       notifications = donnees.notifications || [];
       mesNotes      = donnees.notes || [];
+      mesVus        = donnees.vus || [];
     } else {
       listeFilms    = [...videosInitiales];
       mesPlaylists  = [];
       maListe       = [];
       notifications = [];
       mesNotes      = [];
+      mesVus        = [];
     }
 
     mettreAJourNotificationsUI();
